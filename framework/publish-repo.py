@@ -3,8 +3,11 @@ import pyccn
 from pyccn import _pyccn
 
 import time
-from time import gmtime, strftime
+# from time import gmtime, strftime
 from threading import Thread
+import json
+
+import random
 
 class RepoSocketPublisher(pyccn.Closure):
 	def __init__(self, repo_port):
@@ -25,24 +28,41 @@ class SystemTimeLogger(Thread):
 		self.si = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.key), freshness = 1200)
 		
 	def run(self):
+		print "child thread started..."
 		# For test purpose, run for 10 seconds only
 		# Push content to repo every second
-		i = 10
+		i = 20
+		sample_count = 1
+		data_list = []
 		while (i > 0):
-			now = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
-			co = pyccn.ContentObject()
-			co.name = self.prefix.appendVersion()
-			co.content = now
-			co.signedInfo = self.si
-			co.sign(self.key)
+			# now = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
+			now = int(time.time() * 1000)
 			
-			self.publisher.put(co)
+			entry = {'ts':now, 'value':random.randint(0,1000)}
+			data_list.append(entry)
+			
+			if sample_count % 10 == 0:
+				report = {'data':data_list}
+				data_list = []
+				json_text = json.dumps(report)
+				
+				co = pyccn.ContentObject()
+				co.name = self.prefix.appendVersion()
+				co.content = json_text
+				co.signedInfo = self.si
+				co.sign(self.key)
+				self.publisher.put(co)
 			
 			i = i - 1
-			time.sleep(1)
+			sample_count = sample_count + 1
+			time.sleep(0.1)
+		
+		print "leave child thread"
 
 if __name__ == "__main__":
+	print "main thread started..."
 	logger = SystemTimeLogger()
 	logger.start()
 	logger.join()
+	print "leave main thread"
 	
