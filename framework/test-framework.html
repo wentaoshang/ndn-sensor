@@ -39,7 +39,16 @@
 				//console.log("In callback, nameStr: " + nameStr);
 				//console.log("In callback, content: ");
 				//console.log(content);
-				document.getElementById('content').innerHTML += "<p>Content string is: " + DataUtils.toString(content.content) + "</p>";
+				//document.getElementById('content').innerHTML += "<p>Content string is: " + DataUtils.toString(content.content) + "</p>";
+				var json_text = DataUtils.toString(content.content);
+				var data = JSON.parse(json_text).data;
+				var output = "<table>";
+				output += "<tr><th>Timestamp</th><th>Value</th></tr>";
+				for (i = 0; i < data.length; i++) {
+					output += "<tr><td>" + data[i].ts + "</td><td>" + data[i].value + "</td></tr>";
+				}
+				output += "</table>";
+				document.getElementById('content').innerHTML += "<p>Format JSON content as table: </br>" + output + "</p>";
 			} else if (kind == Closure.UPCALL_CONTENT_BAD) {
 				var content = upcallInfo.contentObject;
 				console.log("Closure.upcall: content signature verification fail.");
