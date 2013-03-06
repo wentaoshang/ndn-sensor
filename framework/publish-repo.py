@@ -9,6 +9,8 @@ import json
 
 import random
 
+keyFile = "sensor.pem"
+
 class RepoSocketPublisher(pyccn.Closure):
 	def __init__(self, repo_port):
 		self.repo_dest = ('127.0.0.1', int(repo_port))
@@ -24,7 +26,13 @@ class SystemTimeLogger(Thread):
 		Thread.__init__(self)
 		self.publisher = RepoSocketPublisher(12345)
 		self.prefix = pyccn.Name(["wentao.shang","logtest"])
-		self.key = pyccn.CCN.getDefaultKey()
+		self.loadKey()
+		
+		
+	def loadKey(self):
+		self.key = pyccn.Key()
+		self.key.fromPEM(filename = keyFile)
+		self.keyName = self.prefix.append("Keys").appendKeyID(self.key).appendVersion().appendSegment(0)
 		self.si = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.key), freshness = 1200)
 		
 	def run(self):
@@ -47,7 +55,7 @@ class SystemTimeLogger(Thread):
 				json_text = json.dumps(report)
 				
 				co = pyccn.ContentObject()
-				co.name = self.prefix.appendVersion()
+				co.name = self.prefix.append("data").appendVersion()
 				co.content = json_text
 				co.signedInfo = self.si
 				co.sign(self.key)
