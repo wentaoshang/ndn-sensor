@@ -26,14 +26,22 @@ class SystemTimeLogger(Thread):
 		Thread.__init__(self)
 		self.publisher = RepoSocketPublisher(12345)
 		self.prefix = pyccn.Name(["wentao.shang","logtest"])
-		self.loadKey()
+		self.loadAndPublishKey()
 		
 		
-	def loadKey(self):
+	def loadAndPublishKey(self):
 		self.key = pyccn.Key()
 		self.key.fromPEM(filename = keyFile)
-		self.keyName = self.prefix.append("key")
-		self.si = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.key), freshness = 1200)
+		self.keyName = self.prefix.append("keys").appendKeyID(self.key).appendVersion().appendSegment(0)
+		self.si = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.keyName), freshness = 1200)
+		
+		key_co = pyccn.ContentObject()
+		key_co.name = self.keyName
+		key_co.content = self.key.publicToDER()
+		key_co.signedInfo = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.keyName), type = pyccn.CONTENT_KEY, final_block = b'\x00')
+		key_co.sign(self.key)
+		self.publisher.put(key_co)
+
 		
 	def run(self):
 		print "child thread started..."
