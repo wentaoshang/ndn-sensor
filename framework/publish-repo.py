@@ -32,7 +32,7 @@ class SystemTimeLogger(Thread):
 	def loadKey(self):
 		self.key = pyccn.Key()
 		self.key.fromPEM(filename = keyFile)
-		self.keyName = self.prefix.append("Keys").appendKeyID(self.key).appendVersion().appendSegment(0)
+		self.keyName = self.prefix.append("key")
 		self.si = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.key), freshness = 1200)
 		
 	def run(self):
