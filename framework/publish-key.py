@@ -25,6 +25,6 @@ keyName = prefix.appendKeyID(key).appendVersion().appendSegment(0)
 key_co = pyccn.ContentObject()
 key_co.name = keyName
 key_co.content = key.publicToDER()
-key_co.signedInfo = pyccn.SignedInfo(key.publicKeyID, pyccn.KeyLocator(keyName), type = pyccn.CONTENT_KEY, final_block = b'\x00')
+key_co.signedInfo = pyccn.SignedInfo(key.publicKeyID, pyccn.KeyLocator(key), type = pyccn.CONTENT_KEY, final_block = b'\x00')
 key_co.sign(key)
 publisher.put(key_co)

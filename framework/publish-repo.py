@@ -38,7 +38,7 @@ class SystemTimeLogger(Thread):
 		key_co = pyccn.ContentObject()
 		key_co.name = self.keyName
 		key_co.content = self.key.publicToDER()
-		key_co.signedInfo = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.keyName), type = pyccn.CONTENT_KEY, final_block = b'\x00')
+		key_co.signedInfo = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.key), type = pyccn.CONTENT_KEY, final_block = b'\x00')
 		key_co.sign(self.key)
 		self.publisher.put(key_co)
 
