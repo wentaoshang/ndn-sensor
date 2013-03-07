@@ -1,3 +1,4 @@
+<!DOCTYPE HTML>
 <html>  
 <head>
 	<meta charset="utf-8">
@@ -6,9 +7,10 @@
 	<!-- Load styles -->
 	<link href="http://fonts.googleapis.com/css?family=Rambla:400,700|Istok+Web:400,700" rel="stylesheet" type="text/css">
 	<link rel="stylesheet" type="text/css" href="style.css" />
+	<link rel="stylesheet" type="text/css" href="envision.min.css" />
 
 	<style type="text/css">
-		#prefixcontent, #linkcontent, #status, #nosupport { display: none; }
+		#status, #nosupport { display: none; }
 		
 		#nosupport h1 {
 			font-size: 300%;
@@ -18,49 +20,24 @@
 			text-align: center;
 			display: none;
 		}
-
-		#continue {
-			cursor: pointer;
-		}
 	</style>
 </head>
 
 <body>
 	<div id="all">
-		<div id="top2"></div>
-	
 		<div id="contentwrapper">
 			<div id="header">
 				<div id="title">
-					<h1>NDN ·</span> <span id="grey">sensor</span> <span id="green">status</span></h1>
+					<h1>NDN <span id="grey">sensor</span> <span id="green">status</span></h1>
+					powered by ndn.js
 				</div>
 			</div>
 
 			<div id="status">
 				<div id="infodiv">
 					<div class="titles"><p>Status information:</p></div>
-					<table id="information">
-						<thead>
-							<tr>
-								<td id="grey">Page last updated:</td>
-								<td>&nbsp;&nbsp;&nbsp;</td>
-								<td><span id="green"><span id="lastupdated">- -</span></span></td>
-							</tr>
-						</thead>
-		
-						<tbody>
-							<tr>
-								<td id="grey">Last logfile processed:</td>
-								<td>&nbsp;&nbsp;&nbsp;</td>
-								<td><span id="green"><span id="lastlog">- -</span></span></td>
-							</tr>
-							<tr>
-								<td id="grey">Last timestamp in logfile:</td>
-								<td>&nbsp;&nbsp;&nbsp;</td>
-								<td><span id="green"><span id="lasttimestamp">- -</span></span></td>
-							</tr>
-						</tbody>
-					</table>
+					<div id="container">
+					</div>
 				</div>
 
 				<div id="wrap">
@@ -68,13 +45,12 @@
 					<table id="box-table-a" class="one">
 						<thead>
 							<tr>
-								<th class="border_left" scope="col">Router</th>
-								<th scope="col">Timestamp</th>
-								<th scope="col">Prefix</th>
-								<th class="border_right" scope="col">Status</th>
+								<th class="border_left" scope="col">Timestamp</th>
+								<th scope="col">Blank</th>
+								<th class="border_right" scope="col">Value</th>
 							</tr>
 						</thead>
-		
+						
 						<tbody id="summary">
 						</tbody>
 				
@@ -83,12 +59,6 @@
 				</div>
 			</div>
 		</div>
-		
-		<div id="leftcolumn"></div>
-		<div id="rightcolumn"></div>
-	
-		<div id="prefixcontent"></div>
-		<div id="linkcontent"></div>
 
 		<div id="base">
 			<h3><span id="green">Retrieving</span><span id="grey"> Content</span></h3>
@@ -108,6 +78,7 @@
 	<script type="text/javascript" src="ndn-js.js"></script>
 	<script src="content.js"></script>
 	<script src="detect.js"></script>
+	<script type="text/javascript" src="envision.min.js"></script>
 
 	<script type="text/javascript">
 		var AsyncGetClosure = function AsyncGetClosure() {
@@ -119,21 +90,50 @@
 				// Do nothing.
 			} else if (kind == Closure.UPCALL_CONTENT) {
 				var content = upcallInfo.contentObject;
-				var nameStr = content.name.getName();
 				
 				var json_text = DataUtils.toString(content.content);
-				var data = jQuery.parseJSON(json_text);
+				var json_obj = jQuery.parseJSON(json_text).data;
 				
-				var output = "<table>";
-				output += "<tr><th>Timestamp</th><th>Value</th></tr>";
-				for (i = 0; i < data.length; i++) {
-					output += "<tr><td>" + data[i].ts + "</td><td>" + data[i].value + "</td></tr>";
+				var container = document.getElementById('container');
+				var x = [], y1 = [], y2 = [], series_data, options;
+
+				// Data Format:
+				series_data = [
+					[x, y1], // First Series
+					[x, y2]  // Second Series
+				];
+				
+				for (i = 0; i < json_obj.length; i++) {
+					$("#summary").append( '<tr><td>' + json_obj[i].ts + '</td><td>&nbsp;</td><td>' + json_obj[i].value + '</td></tr>');
+					x.push(i);
+					y1.push(json_obj[i].ts);
+					y2.push(json_obj[i].value);
 				}
-				output += "</table>";
 				
-				document.getElementById("summary").innerHTML = output;
-				//document.getElementById("lastlog").innerHTML = obj.lastlog;
-				//document.getElementById("lasttimestamp").innerHTML = obj.lasttimestamp;
+				
+				// TimeSeries Template Options
+				options = {
+					// Container to render inside of
+					container : container,
+					// Data for detail (top chart) and summary (bottom chart)
+					data : {
+						detail : series_data,
+						summary : series_data
+					},
+					// An initial selection
+					selection : {
+						data : {
+							x : {
+								min : 1,
+								max : 5
+							}
+						}
+					}
+				};
+
+				// Create the TimeSeries
+				new envision.templates.TimeSeries(options);
+				
 			} else if (kind == Closure.UPCALL_INTEREST_TIMED_OUT) {
 				console.log("Closure.upcall called with interest time out.");
 			}

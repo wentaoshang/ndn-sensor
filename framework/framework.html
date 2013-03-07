@@ -11,6 +11,7 @@
 	<title>NDN Get via WebSocket</title>
 	
 	<script type="text/javascript" src="ndn-js.js"></script>
+	<script type="text/javascript" src="envision.min.js"></script>
 
 	<script type="text/javascript">
 		var ndn = new NDN({port:9696,host:"localhost"});
@@ -41,14 +42,56 @@
 				//console.log(content);
 				//document.getElementById('content').innerHTML += "<p>Content string is: " + DataUtils.toString(content.content) + "</p>";
 				var json_text = DataUtils.toString(content.content);
-				var data = JSON.parse(json_text).data;
+				var json_obj = JSON.parse(json_text).data;
+				
+				var container = document.getElementById('container');
+				var x = [], y1 = [], y2 = [], series_data, options;
+
+				// Data Format:
+				series_data = [
+					[x, y1], // First Series
+					[x, y2]  // Second Series
+				];
+				
 				var output = "<table>";
 				output += "<tr><th>Timestamp</th><th>Value</th></tr>";
-				for (i = 0; i < data.length; i++) {
-					output += "<tr><td>" + data[i].ts + "</td><td>" + data[i].value + "</td></tr>";
+				for (i = 0; i < json_obj.length; i++) {
+					output += "<tr><td>" + json_obj[i].ts + "</td><td>" + json_obj[i].value + "</td></tr>";
+					x.push(i);
+					y1.push(json_obj[i].ts);
+					y2.push(json_obj[i].value);
 				}
 				output += "</table>";
 				document.getElementById('content').innerHTML += "<p>Format JSON content as table: </br>" + output + "</p>";
+				
+				// TimeSeries Template Options
+				options = {
+					// Container to render inside of
+					container : container,
+					// Data for detail (top chart) and summary (bottom chart)
+					data : {
+						detail : series_data,
+						summary : series_data
+					},
+					// An initial selection
+					selection : {
+						data : {
+							x : {
+								min : 1,
+								max : 5
+							}
+						}
+					}
+				};
+
+				// Create the TimeSeries
+				try {
+					new envision.templates.TimeSeries(options);
+				}
+				catch (e) {
+					console.log("Closure.upcall: " + e.message);
+				}
+				
 			} else if (kind == Closure.UPCALL_CONTENT_BAD) {
 				var content = upcallInfo.contentObject;
 				console.log("Closure.upcall: content signature verification fail.");
@@ -82,7 +125,11 @@
 
 	<button id="testBtn" onclick="run()" disabled="disabled">Fetch Content</button>
 	
-	<p id="content"></p>
+	<p id="content">
+	</p>
+	
+	<div id="container">
+	</div>
 
 </body>
 </html>
