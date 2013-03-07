@@ -14,35 +14,44 @@
 	<div id="all">
 		<header>
 			<div id="title">
-				<h1>NDN <grey>sensor</grey> <blue>status</blue></h1>
+				<h1>NDN <grey>Sensor</grey> <blue>Status</blue></h1>
+			</div>
+			<div id="navbar_blue">
+				<ul>
+					<li><a href="status.html" class="active">Snapshot</a></li>
+					<li><a href="status.html">Real Time</a></li>
+					<li><a href="status.html">About</a></li>
+				</ul>
 			</div>
 		</header>
 		
+		<div id="loader">
+			<img src="img/loader-blue.gif" />
+		</div>
+		
 		<article>
-			<div id="info">
-				<div class="titles"><p>Status Information: </p></div>
+			<div id="summary">
+				<div class="titles"><p>Status Summary: </p></div>
 				<div id="container">
 				</div>
 			</div>
 
-			<div id="status">
-				<div id="wrap">
-					<div class="titles"><p>Summary: </p></div>
+			<div id="meta">
+				<div class="titles"><p>Meta Info: </p></div>
 <!--
-					<table id="box-table-a">
-						<thead>
-							<tr>
-								<th class="border_left" scope="col">Timestamp</th>
-								<th scope="col">Blank</th>
-								<th class="border_right" scope="col">Value</th>
-							</tr>
-						</thead>
-						
-						<tbody id="summary">
-						</tbody>
-					</table>
+				<table id="box-table-a">
+					<thead>
+						<tr>
+							<th class="border_left" scope="col">Timestamp</th>
+							<th scope="col">Blank</th>
+							<th class="border_right" scope="col">Value</th>
+						</tr>
+					</thead>
+					
+					<tbody id="summary">
+					</tbody>
+				</table>
 -->
-				</div>
 			</div>
 		</article>
 	</div>
@@ -52,7 +61,7 @@
     </footer>
 
 	<!-- Load scripts at the bottom for efficiency -->
-	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
 	<script type="text/javascript" src="js/ndn-js.js"></script>
 	<script type="text/javascript" src="js/content.js"></script>
 	<script type="text/javascript" src="js/detect.js"></script>
@@ -73,10 +82,10 @@
 				var json_obj = jQuery.parseJSON(json_text).data;
 				
 				var container = document.getElementById('container');
-				var x = [], y = [], series_data, options;
+				var x = [], y1 = [], y2 = [], series_data, options;
 
 				// Data Format:
-				series_data = [x, y];
+				series_data = [[x, y1], [x, y2]];
 				
 				for (i = 0; i < json_obj.length; i++) {
 					/*
@@ -88,7 +97,8 @@
 						+ '</td><td>&nbsp;</td><td class="border_right" scope="col">' + json_obj[i].value + '</td></tr>');
 					*/
 					x.push(i);
-					y.push(json_obj[i].value);
+					y1.push(json_obj[i].value);
+					y2.push(300 - i * 50);
 				}
 				
 				
@@ -132,6 +142,8 @@
 
 		// Calls to get the content data.
 		function begin() {
+			$("#loader").fadeOut(50);
+			$("article").fadeIn(100);
 			getStatus("data");
 		}
 
