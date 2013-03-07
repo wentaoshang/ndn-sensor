@@ -6,43 +6,30 @@
 
 	<!-- Load styles -->
 	<link href="http://fonts.googleapis.com/css?family=Rambla:400,700|Istok+Web:400,700" rel="stylesheet" type="text/css">
-	<link rel="stylesheet" type="text/css" href="style.css" />
-	<link rel="stylesheet" type="text/css" href="envision.min.css" />
-
-	<style type="text/css">
-		#status, #nosupport { display: none; }
-		
-		#nosupport h1 {
-			font-size: 300%;
-		}
-	
-		#nosupport {
-			text-align: center;
-			display: none;
-		}
-	</style>
+	<link rel="stylesheet" type="text/css" href="css/style.css" />
+	<link rel="stylesheet" type="text/css" href="css/envision.min.css" />
 </head>
 
 <body>
 	<div id="all">
-		<div id="contentwrapper">
-			<div id="header">
-				<div id="title">
-					<h1>NDN <span id="grey">sensor</span> <span id="green">status</span></h1>
-					powered by ndn.js
+		<header>
+			<div id="title">
+				<h1>NDN <grey>sensor</grey> <blue>status</blue></h1>
+			</div>
+		</header>
+		
+		<article>
+			<div id="info">
+				<div class="titles"><p>Status Information: </p></div>
+				<div id="container">
 				</div>
 			</div>
 
 			<div id="status">
-				<div id="infodiv">
-					<div class="titles"><p>Status information:</p></div>
-					<div id="container">
-					</div>
-				</div>
-
 				<div id="wrap">
-					<div class="titles2"><p>Data Summary: </p></div>
-					<table id="box-table-a" class="one">
+					<div class="titles"><p>Summary: </p></div>
+<!--
+					<table id="box-table-a">
 						<thead>
 							<tr>
 								<th class="border_left" scope="col">Timestamp</th>
@@ -53,32 +40,23 @@
 						
 						<tbody id="summary">
 						</tbody>
-				
-						<tfoot><tr><td colspan="4"></td></td></tfoot>
 					</table>
+-->
 				</div>
 			</div>
-		</div>
-
-		<div id="base">
-			<h3><span id="green">Retrieving</span><span id="grey"> Content</span></h3>
-			<img id="loader" src="load.gif" />
-			<h3><span id="grey">Powered by</span><span id="green"> NDN.JS</span><span id="grey">.</span></h3>
-		</div>
-
-		<div id="nosupport">
-			<h1><span id="green">Oops!</span></h1>
-			<h3><span id="grey">It looks like you're using a browser that is not <span id="green">supported</span>.</span></h3>
-		</div>
-
+		</article>
 	</div>
+	
+	<footer>
+      <grey>Powered by </grey><a target="_blank" href="http://github.com/wentaoshang/ndn-js"><blue>NDN.JS</blue></a><grey>.</grey>
+    </footer>
 
 	<!-- Load scripts at the bottom for efficiency -->
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
-	<script type="text/javascript" src="ndn-js.js"></script>
-	<script src="content.js"></script>
-	<script src="detect.js"></script>
-	<script type="text/javascript" src="envision.min.js"></script>
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+	<script type="text/javascript" src="js/ndn-js.js"></script>
+	<script type="text/javascript" src="js/content.js"></script>
+	<script type="text/javascript" src="js/detect.js"></script>
+	<script type="text/javascript" src="js/envision.min.js"></script>
 
 	<script type="text/javascript">
 		var AsyncGetClosure = function AsyncGetClosure() {
@@ -95,19 +73,22 @@
 				var json_obj = jQuery.parseJSON(json_text).data;
 				
 				var container = document.getElementById('container');
-				var x = [], y1 = [], y2 = [], series_data, options;
+				var x = [], y = [], series_data, options;
 
 				// Data Format:
-				series_data = [
-					[x, y1], // First Series
-					[x, y2]  // Second Series
-				];
+				series_data = [x, y];
 				
 				for (i = 0; i < json_obj.length; i++) {
-					$("#summary").append( '<tr><td>' + json_obj[i].ts + '</td><td>&nbsp;</td><td>' + json_obj[i].value + '</td></tr>');
+					/*
+					if (i % 2 == 1)
+						$("#summary").append( '<tr class="odd"><td class="border_left" scope="col">' + json_obj[i].ts 
+						+ '</td><td>&nbsp;</td><td class="border_right" scope="col">' + json_obj[i].value + '</td></tr>');
+					else
+						$("#summary").append( '<tr><td class="border_left" scope="col">' + json_obj[i].ts 
+						+ '</td><td>&nbsp;</td><td class="border_right" scope="col">' + json_obj[i].value + '</td></tr>');
+					*/
 					x.push(i);
-					y1.push(json_obj[i].ts);
-					y2.push(json_obj[i].value);
+					y.push(json_obj[i].value);
 				}
 				
 				
@@ -156,20 +137,13 @@
 
 		var ndn;
 		$(document).ready(function() {
-			$("#all").fadeIn(500);
-			var res = detect();
+			$("#all").fadeIn(1000);
 	
-			if (!res) {
-				$("#base").fadeOut(50);	
-				$("#nosupport").fadeIn(500);
-			} else {
+			if (detect()) {
 				openHandle = function() { begin() };
 				ndn = new NDN({port:9696, host:"localhost", onopen:openHandle});
 				ndn.transport.connectWebSocket(ndn);
-				$("#base").fadeOut(500, function () {
-					$("#status").fadeIn(1000);
-				});
-		}
+			}
 		});
 	</script>
 </body>
