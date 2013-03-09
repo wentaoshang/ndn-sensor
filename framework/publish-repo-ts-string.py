@@ -25,7 +25,7 @@ class SensorDataLogger(Thread):
 	def __init__(self, data_interval):
 		Thread.__init__(self)
 		self.publisher = RepoSocketPublisher(12345)
-		self.prefix = pyccn.Name(["wentao.shang","logtest"]).appendVersion()
+		self.prefix = pyccn.Name(["wentao.shang","logtest1"]).appendVersion()
 		self.interval = data_interval # in milliseconds
 		
 		self.start_time = int(time.time() * 1000) # time.time() returns float point time in seconds since epoch
@@ -80,7 +80,7 @@ class SensorDataLogger(Thread):
 			
 			if sample_count % self.aggregate == 0:
 				payload = {'data':data_list}
-				timestamp = struct.pack("!Q", data_list[0]['ts'])
+				timestamp = str(data_list[0]['ts'])
 				
 				co = pyccn.ContentObject()
 				co.name = self.prefix.append("index").append(timestamp)
