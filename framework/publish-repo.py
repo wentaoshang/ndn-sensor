@@ -75,12 +75,12 @@ class SensorDataLogger(Thread):
 			# now = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
 			now = int(time.time() * 1000000000) # in nanoseconds
 			
-			entry = {'ts': now, 'val': random.randint(0,1000)}
+			entry = {'ts': str(now), 'val': random.randint(0,100)}
 			data_list.append(entry)
 			
 			if sample_count % self.aggregate == 0:
 				payload = {'data':data_list}
-				timestamp = struct.pack("!Q", data_list[0]['ts'])
+				timestamp = struct.pack("!Q", int(int(data_list[0]['ts']) / 1000000)) # timestamp is in milliseconds
 				
 				co = pyccn.ContentObject()
 				co.name = self.prefix.append("index").append(timestamp)
