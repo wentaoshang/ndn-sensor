@@ -19,7 +19,7 @@
 			<div id="navbar_blue">
 				<ul>
 					<li><a href="status.html" class="active">Snapshot</a></li>
-					<li><a href="status.html">Real Time</a></li>
+					<li><a href="realtime.html">Real Time</a></li>
 					<li><a href="status.html">About</a></li>
 				</ul>
 			</div>
@@ -35,24 +35,11 @@
 				<div id="container">
 				</div>
 			</div>
-
+<!--
 			<div id="meta">
 				<div class="titles"><p>Meta Info: </p></div>
-<!--
-				<table id="box-table-a">
-					<thead>
-						<tr>
-							<th class="border_left" scope="col">Timestamp</th>
-							<th scope="col">Blank</th>
-							<th class="border_right" scope="col">Value</th>
-						</tr>
-					</thead>
-					
-					<tbody id="summary">
-					</tbody>
-				</table>
--->
 			</div>
+-->
 		</article>
 	</div>
 	
@@ -68,83 +55,162 @@
 	<script type="text/javascript" src="js/envision.min.js"></script>
 
 	<script type="text/javascript">
-		var AsyncGetClosure = function AsyncGetClosure() {
-			Closure.call(this);
+		function UnsignedIntToArrayBuffer(value) {
+			if (value <= 0)
+				return new Uint8Array([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]);
+		    
+			// Encode into 64 bits.
+			var size = 8;
+			var result = new Uint8Array(size);
+			var i = 0;
+			while (i < 8) {
+				//console.log(value);
+				++i;
+				result[size - i] = value % 256;
+				value = Math.floor(value / 256);
+			}
+			return result;
 		};
+	
+		var AsyncGetClosure = function AsyncGetClosure(prfx, range) {
+			Closure.call(this);
+			
+			this.version = null; // uint8array for the version code
+			this.prefix = prfx; // prefix for the namespace (excluding the version code)
+			this.data_prefix = null;
+			this.range = range; // array of two integers [start, end], the time range within which we want to fetch the data
+			
+			this.x = [];
+			this.y1 = [];
+			this.y2 = [];
+			this.sample_num = 0;
+		};
+		
+		AsyncGetClosure.prototype.display_data = function() {
+			$("#loader").fadeOut(50);
+			$("article").fadeIn(100);
+			
+			var container = document.getElementById('container');
+			
+			// Data Format:
+			var series_data = [[this.x, this.y1], [this.x, this.y2]];
+			
+			// TimeSeries Template Options
+			var options = {
+				// Container to render inside of
+				container : container,
+				// Data for detail (top chart) and summary (bottom chart)
+				data : {
+					detail : series_data,
+					summary : series_data
+				},
+				// An initial selection
+				selection : {
+					data : {
+						x : {
+							min : Math.round(0.191 * this.sample_num),
+							max : Math.round(0.382 * this.sample_num)
+						}
+					}
+				}
+			};
 
-		AsyncGetClosure.prototype.upcall = function(kind, upcallInfo, tmp) {
+			// Create the TimeSeries
+			new envision.templates.TimeSeries(options);
+		}
+
+		AsyncGetClosure.prototype.upcall = function(kind, upcallInfo) {
 			if (kind == Closure.UPCALL_FINAL) {
 				// Do nothing.
 			} else if (kind == Closure.UPCALL_CONTENT) {
 				var content = upcallInfo.contentObject;
+				var co_name = content.name;
+				//console.log(co_name.getName());
+				
+				if (this.version == null) {
+					var vpos = this.prefix.components.length;
+					this.version = co_name.components[vpos];
+					//console.log(this.version);
+					
+					this.data_prefix = new Name(this.prefix).add(this.version).add('index');
+					//console.log(this.data_prefix.getName());
+					//console.log(this.prefix.getName());
+					
+					// Send interest to get the latest content.
+					var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(this.range[0])]);
+					
+					var template = new Interest();
+					template.childSelector = 0;
+					template.interestLifetime = 1000;
+					template.exclude = filter;
+					
+					ndn.expressInterest(this.data_prefix, this, template);
+					
+					return Closure.RESULT_OK;
+				}
 				
 				var json_text = DataUtils.toString(content.content);
 				var json_obj = jQuery.parseJSON(json_text).data;
 				
-				var container = document.getElementById('container');
-				var x = [], y1 = [], y2 = [], series_data, options;
-
-				// Data Format:
-				series_data = [[x, y1], [x, y2]];
-				
+				// Record the data samples
 				for (i = 0; i < json_obj.length; i++) {
-					/*
-					if (i % 2 == 1)
-						$("#summary").append( '<tr class="odd"><td class="border_left" scope="col">' + json_obj[i].ts 
-						+ '</td><td>&nbsp;</td><td class="border_right" scope="col">' + json_obj[i].value + '</td></tr>');
-					else
-						$("#summary").append( '<tr><td class="border_left" scope="col">' + json_obj[i].ts 
-						+ '</td><td>&nbsp;</td><td class="border_right" scope="col">' + json_obj[i].value + '</td></tr>');
-					*/
-					x.push(i);
-					y1.push(json_obj[i].value);
-					y2.push(300 - i * 50);
+					this.x.push(i + this.sample_num);
+					this.y1.push(json_obj[i].val);
+					this.y2.push(60 - i * 2);
 				}
 				
+				this.sample_num += json_obj.length;
 				
-				// TimeSeries Template Options
-				options = {
-					// Container to render inside of
-					container : container,
-					// Data for detail (top chart) and summary (bottom chart)
-					data : {
-						detail : series_data,
-						summary : series_data
-					},
-					// An initial selection
-					selection : {
-						data : {
-							x : {
-								min : 1,
-								max : 5
-							}
-						}
-					}
-				};
-
-				// Create the TimeSeries
-				new envision.templates.TimeSeries(options);
+				if (this.sample_num >= 3000) {
+					// We have collected enough samples. Display in time series
+					this.display_data();
+				} else {
+					// Send interest for the next content object
+					var tpos = co_name.components.length - 1;
+					var ts = co_name.components[tpos];
+					//console.log(ts);
+					
+					var filter = new Exclude([Exclude.ANY, ts]);
+					
+					var template = new Interest();
+					template.childSelector = 0;
+					template.interestLifetime = 1000;
+					template.exclude = filter;
+					
+					ndn.expressInterest(this.data_prefix, this, template);
+				}
 				
 			} else if (kind == Closure.UPCALL_INTEREST_TIMED_OUT) {
 				console.log("Closure.upcall called with interest time out.");
+				
+				if (this.sample_num > 0) {
+					// Display what we have up to now
+					this.display_data();
+				}
+				
 			}
 			return Closure.RESULT_OK;
 		};
 
-		function getStatus(name) {
+		function get_data_since(ago) {
+			var now = new Date();
+			var range = [now - ago, now]; // time range is in milliseconds
+			//console.log(range[0]);
+			
 			// Template interest to get the latest content.
-			var interest = new Interest();
-            interest.childSelector = 1;
-            interest.interestLifetime = 1000;
+			var template = new Interest();
+			template.childSelector = 1;
+			template.interestLifetime = 1000;
+			
+			var name = new Name("/wentao.shang/logtest");
+			var fsm_closure = new AsyncGetClosure(name, range);
 
-            ndn.expressInterest(new Name("/wentao.shang/logtest/" + name), new AsyncGetClosure(), interest);
+			ndn.expressInterest(name, fsm_closure, template);
 		}
 
 		// Calls to get the content data.
 		function begin() {
-			$("#loader").fadeOut(50);
-			$("article").fadeIn(100);
-			getStatus("data");
+			get_data_since(6000000);
 		}
 
 		var ndn;

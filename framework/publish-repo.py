@@ -43,8 +43,8 @@ class SensorDataLogger(Thread):
 	def loadAndPublishKey(self):
 		self.key = pyccn.Key()
 		self.key.fromPEM(filename = keyFile)
-		self.keyName = self.prefix.append("keys").appendKeyID(self.key).appendVersion().appendSegment(0)
-		self.si = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.keyName), freshness = 1200)
+		self.keyName = self.prefix.append("keys").appendKeyID(self.key).appendSegment(0)
+		self.si = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.keyName))
 		
 		key_co = pyccn.ContentObject()
 		key_co.name = self.keyName
