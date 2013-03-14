@@ -20,7 +20,7 @@
 				<ul>
 					<li><a href="status.html" class="active">Snapshot</a></li>
 					<li><a href="realtime.html">Real Time</a></li>
-					<li><a href="status.html">About</a></li>
+					<li><a href="about.html">About</a></li>
 				</ul>
 			</div>
 		</header>
@@ -161,7 +161,7 @@
 				
 				this.sample_num += json_obj.length;
 				
-				if (this.sample_num >= 3000) {
+				if (this.sample_num >= 600) {
 					// We have collected enough samples. Display in time series
 					this.display_data();
 				} else {
@@ -210,7 +210,7 @@
 
 		// Calls to get the content data.
 		function begin() {
-			get_data_since(6000000);
+			get_data_since(600000);
 		}
 
 		var ndn;
@@ -219,7 +219,7 @@
 	
 			if (detect()) {
 				openHandle = function() { begin() };
-				ndn = new NDN({port:9696, host:"localhost", onopen:openHandle});
+				ndn = new NDN({port:9696, host:"ndnucla-staging.dyndns.org", onopen:openHandle});
 				ndn.transport.connectWebSocket(ndn);
 			}
 		});
