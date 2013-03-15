@@ -43,31 +43,15 @@
 				<div id="current">
 				</div>
 				<hr style="color: #66FFFF;" />
-				<table style="width: 100%; margin-top: -12px">
-					<tr>
-						<td width="20%">10 mins ago</td>
-						<td width="20%">8 mins ago</td>
-						<td width="20%">6 mins ago</td>
-						<td width="20%">4 mins ago</td>
-						<td width="15%">2 mins ago</td>
-						<td width="5%" align="right">Now</td>
-					</tr>
-				</table>
+				<div id="cur_time">
+				</div>
 
 				<p>Electrical Demand - Voltage (unit: Volts)</p>
 				<div id="voltage">
 				</div>
 				<hr style="color: #66FFFF;" />
-				<table style="width: 100%; margin-top: -12px">
-					<tr>
-						<td width="20%">10 mins ago</td>
-						<td width="20%">8 mins ago</td>
-						<td width="20%">6 mins ago</td>
-						<td width="20%">4 mins ago</td>
-						<td width="15%">2 mins ago</td>
-						<td width="5%" align="right">Now</td>
-					</tr>
-				</table>
+				<div id="vol_time">
+				</div>
 			</div>
 <!--
 			<div id="meta">
@@ -120,6 +104,18 @@
 			this.sample_num = 0;
 		};
 		
+		AsyncGetClosure.prototype.display_time = function(container) {
+			var now = this.range[1];
+			
+			container.innerHTML = '<table style="width: 100%; margin-top: -12px"><tr>' + 
+						'<td width="20%">' + (new Date(now - 600000)).toTimeString().substr(0, 8) + '</td>' + 
+						'<td width="20%">' + (new Date(now - 480000)).toTimeString().substr(0, 8) + '</td>' + 
+						'<td width="20%">' + (new Date(now - 360000)).toTimeString().substr(0, 8) + '</td>' +
+						'<td width="20%">' + (new Date(now - 240000)).toTimeString().substr(0, 8) + '</td>' +
+						'<td width="15%">' + (new Date(now - 120000)).toTimeString().substr(0, 8) + '</td>' +
+						'<td width="5%" align="right">' + (new Date(now)).toTimeString().substr(0, 8) + '</td></tr></table>';
+		}
+		
 		AsyncGetClosure.prototype.display_data = function() {
 			$("#loader").fadeOut(50);
 			$("article").fadeIn(100);
@@ -148,22 +144,26 @@
 						}
 					}
 				},
-				/*
 				defaults : {
-					summary : {
+					detail : {
 						config : {
-							xaxis : {
-								noTicks : 10
+							yaxis : {
+								autoscale : false,
+								showLabels : true,
+								ticks : [[220, ''], 230, 240, 250, 260, 270],
+								min : 220,
+								max : 270
 							}
 						}
 					}
 				}
-				*/
 			};
 
 			// Create the TimeSeries
 			new envision.templates.TimeSeries(cur_options);
 			
+			var cur_time = document.getElementById('cur_time');
+			this.display_time(cur_time);
 			
 			// Draw voltage
 			var vol = document.getElementById('voltage');
@@ -188,11 +188,27 @@
 							max : Math.round(0.382 * this.sample_num)
 						}
 					}
+				},
+				defaults : {
+					detail : {
+						config : {
+							yaxis : {
+								autoscale : false,
+								showLabels : true,
+								ticks : [[268, ''], 270, 272, 274, 276, 278, 280],
+								min : 268,
+								max : 280
+							}
+						}
+					}
 				}
 			};
 
 			// Create the TimeSeries
 			new envision.templates.TimeSeries(vol_options);
+			
+			var vol_time = document.getElementById('vol_time');
+			this.display_time(vol_time);
 		}
 
 		AsyncGetClosure.prototype.upcall = function(kind, upcallInfo) {
