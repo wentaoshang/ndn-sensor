@@ -36,15 +36,38 @@
 				</div>
 				
 				<div>
-					<img src="img/strathmore.png" style="width:200px; position: absolute; left: 63%; top: 190px;"/>
+					<img src="img/strathmore.png" style="width:200px; position: absolute; left: 63%; top: 164px;"/>
 				</div>
 				
-				<p>Electrical Demand - Current</p>
+				<p>Electrical Demand - Current (unit: Amperes)</p>
 				<div id="current">
 				</div>
-				<p>Electrical Demand - Voltage</p>
+				<hr style="color: #66FFFF;" />
+				<table style="width: 100%; margin-top: -12px">
+					<tr>
+						<td width="20%">10 mins ago</td>
+						<td width="20%">8 mins ago</td>
+						<td width="20%">6 mins ago</td>
+						<td width="20%">4 mins ago</td>
+						<td width="15%">2 mins ago</td>
+						<td width="5%" align="right">Now</td>
+					</tr>
+				</table>
+
+				<p>Electrical Demand - Voltage (unit: Volts)</p>
 				<div id="voltage">
 				</div>
+				<hr style="color: #66FFFF;" />
+				<table style="width: 100%; margin-top: -12px">
+					<tr>
+						<td width="20%">10 mins ago</td>
+						<td width="20%">8 mins ago</td>
+						<td width="20%">6 mins ago</td>
+						<td width="20%">4 mins ago</td>
+						<td width="15%">2 mins ago</td>
+						<td width="5%" align="right">Now</td>
+					</tr>
+				</table>
 			</div>
 <!--
 			<div id="meta">
@@ -124,7 +147,18 @@
 							max : Math.round(0.382 * this.sample_num)
 						}
 					}
+				},
+				/*
+				defaults : {
+					summary : {
+						config : {
+							xaxis : {
+								noTicks : 10
+							}
+						}
+					}
 				}
+				*/
 			};
 
 			// Create the TimeSeries
