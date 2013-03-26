@@ -96,6 +96,11 @@ p {
 	color: #000000;
 }
 
+.bar {
+	height: 20px;
+	background-color: #33CCFF;
+}
+
 #navbar, #navbar_blue, #navbar_red, #navbar_yellow {
 	margin: 40px 0;
 	/*min-width: 587px;*/

@@ -1,0 +1,198 @@
+<!DOCTYPE HTML>
+<html>  
+<head>
+	<meta charset="utf-8">
+	<title>NDN Sensor</title>
+
+	<!-- Load styles -->
+	<link href="http://fonts.googleapis.com/css?family=Rambla:400,700|Istok+Web:400,700" rel="stylesheet" type="text/css">
+	<link rel="stylesheet" type="text/css" href="css/style.css" />
+	<link rel="stylesheet" type="text/css" href="css/envision.min.css" />
+</head>
+
+<body>
+	<div id="all">
+		<header>
+			<div id="title">
+				<h1>NDN <grey>Cuerda Sensor</grey> <blue>Testbed</blue></h1>
+			</div>
+			<div id="navbar_blue">
+				<ul>
+					<li><a href="status.html" class="active">Realtime - Cuerda Sensor</a></li>
+				</ul>
+			</div>
+		</header>
+		
+		<div id="loader">
+			<img src="img/loader-blue.gif" />
+		</div>
+		
+		<article>
+			<div id="summary">
+				<div class="titles">
+					<p>Cuerda accelerometer in real time</p>
+				</div>
+				
+				<div id="time">
+				</div>
+				
+				<p>Acceleration X-axis</p>
+				<div id="accex" class="bar">
+				</div>
+
+				<p>Acceleration Y-axis</p>
+				<div id="accey" class="bar">
+				</div>
+				
+				<p>Acceleration Z-axis</p>
+				<div id="accez" class="bar">
+				</div>
+			</div>
+<!--
+			<div id="meta">
+				<div class="titles"><p>Meta Info: </p></div>
+			</div>
+-->
+		</article>
+	</div>
+	
+	<footer>
+      <grey>Powered by </grey><a target="_blank" href="http://github.com/named-data/ndn-js"><blue>NDN.JS</blue></a><grey>.</grey>
+    </footer>
+
+	<!-- Load scripts at the bottom for efficiency -->
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/ndn-js.js"></script>
+	<script type="text/javascript" src="js/content.js"></script>
+	<script type="text/javascript" src="js/detect.js"></script>
+	<script type="text/javascript" src="js/envision.min.js"></script>
+
+	<script type="text/javascript">
+		function UnsignedIntToArrayBuffer(value) {
+			if (value <= 0)
+				return new Uint8Array([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]);
+		    
+			// Encode into 64 bits.
+			var size = 8;
+			var result = new Uint8Array(size);
+			var i = 0;
+			while (i < 8) {
+				//console.log(value);
+				++i;
+				result[size - i] = value % 256;
+				value = Math.floor(value / 256);
+			}
+			return result;
+		};
+	
+		var AsyncGetClosure = function AsyncGetClosure(prefix) {
+			Closure.call(this);
+			
+			this.version = null; // uint8array for the version code
+			this.prefix = prefix; // prefix for the namespace (excluding the version code)
+			this.data_prefix = null;
+		};
+		
+		function display_data(json_data) {
+			$('#time').html(new Date(json_data.ts / 1000.0));
+			
+			$('#accex').html(json_data.acx);
+			$('#accex').animate({width : json_data.acx * 100 + '%'}, 100);
+			
+			$('#accey').html(json_data.acy);
+			$('#accey').animate({width : json_data.acy * 100 + '%'}, 100);
+			
+			$('#accez').html(json_data.acz);
+			$('#accez').animate({width : json_data.acz * 100 + '%'}, 100);
+		};
+
+		AsyncGetClosure.prototype.upcall = function(kind, upcallInfo) {
+			if (kind == Closure.UPCALL_FINAL) {
+				// Do nothing.
+			} else if (kind == Closure.UPCALL_CONTENT) {
+				var content = upcallInfo.contentObject;
+				var co_name = content.name;
+				//console.log(co_name.getName());
+				
+				if (this.version == null) {
+					var vpos = this.prefix.components.length;
+					this.version = co_name.components[vpos];
+					//console.log(this.version);
+					
+					this.data_prefix = new Name(this.prefix).add(this.version).add('index');
+					//console.log(this.data_prefix.getName());
+					//console.log(this.prefix.getName());
+					
+					// Send interest to get the latest content.
+					var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(new Date())]);
+					
+					var template = new Interest();
+					template.childSelector = 0;
+					template.answerOriginKind = 0;
+					template.interestLifetime = 1000;
+					template.exclude = filter;
+					
+					ndn.expressInterest(this.data_prefix, this, template);
+					
+					return Closure.RESULT_OK;
+				}
+				
+				var json_text = DataUtils.toString(content.content);
+				var json_obj = jQuery.parseJSON(json_text);
+				
+				display_data(json_obj);
+				
+				var self = this;
+				setTimeout(function() {
+					// Send interest for the next content object
+					var tpos = co_name.components.length - 1;
+					var ts = co_name.components[tpos];
+					//console.log(ts);
+					
+					var filter = new Exclude([Exclude.ANY, ts]);
+					
+					var template = new Interest();
+					template.childSelector = 1;
+					template.interestLifetime = 1000;
+					template.exclude = filter;
+					
+					ndn.expressInterest(self.data_prefix, self, template);
+				}, 100);
+				
+			} else if (kind == Closure.UPCALL_INTEREST_TIMED_OUT) {
+				console.log("Closure.upcall called with interest time out.");
+			}
+			return Closure.RESULT_OK;
+		};
+
+		function get_data() {
+			$("#loader").fadeOut(50);
+			$("article").fadeIn(100);
+			
+			// Template interest to get the latest content.
+			var template = new Interest();
+			template.childSelector = 1;
+			template.answerOriginKind = 0;
+			template.interestLifetime = 1000;
+			
+			var name = new Name("/wentao.shang/cuerda1");
+			var fsm_closure = new AsyncGetClosure(name);
+
+			ndn.expressInterest(name, fsm_closure, template);
+		}
+
+		var ndn;
+		$(document).ready(function() {
+			$("#all").fadeIn(1000);
+	
+			if (detect()) {
+				openHandle = function() { get_data(); };
+				ndn = new NDN({port:9696, host:'localhost', onopen:openHandle});
+				ndn.transport.connectWebSocket(ndn);
+			}
+		});
+	</script>
+</body>
+
+</html>
+
