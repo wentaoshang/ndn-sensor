@@ -51,7 +51,9 @@ class SensorDataProducer(Thread):
 		buf = ''
 		
 		while (True):
-			content, addr_info = self.udp_reader.recvfrom(512)
+			content, addr_info = self.udp_reader.recvfrom(128)
+			#print content
+			
 			now = int(time.time() * 1000000) # in microseconds
 			
 			buf += content

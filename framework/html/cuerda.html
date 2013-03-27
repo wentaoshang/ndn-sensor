@@ -97,13 +97,19 @@
 			$('#time').html(new Date(json_data.ts / 1000.0));
 			
 			$('#accex').html(json_data.acx);
-			$('#accex').animate({width : json_data.acx * 100 + '%'}, 100);
+			percentx = Math.abs(json_data.acx) * 1;
+			if (percentx > 100) percentx = 100;
+			$('#accex').animate({width : percentx + '%'}, 100);
 			
 			$('#accey').html(json_data.acy);
-			$('#accey').animate({width : json_data.acy * 100 + '%'}, 100);
+			percenty = Math.abs(json_data.acy) * 1;
+			if (percenty > 100) percenty = 100;
+			$('#accey').animate({width : percenty + '%'}, 100);
 			
 			$('#accez').html(json_data.acz);
-			$('#accez').animate({width : json_data.acz * 100 + '%'}, 100);
+			percentz = Math.abs(json_data.acz) * 1;
+			if (percentz > 100) percentz = 100;
+			$('#accez').animate({width : percentz + '%'}, 100);
 		};
 
 		AsyncGetClosure.prototype.upcall = function(kind, upcallInfo) {
