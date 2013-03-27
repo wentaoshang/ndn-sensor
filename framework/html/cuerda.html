@@ -181,7 +181,7 @@
 			template.answerOriginKind = 0;
 			template.interestLifetime = 1000;
 			
-			var name = new Name("/wentao.shang/cuerda1");
+			var name = new Name("/ndn/ucla.edu/apps/cuerda/sensor/accelerometer");
 			var fsm_closure = new AsyncGetClosure(name);
 
 			ndn.expressInterest(name, fsm_closure, template);
