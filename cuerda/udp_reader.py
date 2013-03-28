@@ -6,7 +6,7 @@ from threading import Thread
 import pyccn
 from pyccn import _pyccn
 
-keyFile = "sensor.pem"
+keyFile = "cuerda.pem"
 
 class RepoSocketPublisher(pyccn.Closure):
 	def __init__(self, repo_port):
@@ -28,7 +28,7 @@ class SensorDataProducer(Thread):
 		
 		self.udp_reader = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 		self.udp_reader.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-		self.udp_reader.bind(('192.168.42.255', 9750))
+		self.udp_reader.bind(('192.168.42.255', 9760))
 		
 		self.loadAndPublishKey()
 		

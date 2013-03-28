@@ -7,7 +7,7 @@ from pyccn import _pyccn
 
 c = pyccn.CCN()
 
-n = pyccn.Name(["wentao.shang","cuerda1"])
+n = pyccn.Name("/ndn/ucla.edu/apps/cuerda/sensor/accelerometer")
 
 i = pyccn.Interest(childSelector = 1, answerOriginKind = pyccn.AOK_NONE)
 

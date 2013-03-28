@@ -7,7 +7,7 @@ from threading import Thread
 import pyccn
 from pyccn import _pyccn
 
-keyFile = "sensor.pem"
+keyFile = "cuerda.pem"
 
 class RepoSocketPublisher(pyccn.Closure):
 	def __init__(self, repo_port):
@@ -23,7 +23,7 @@ class SensorDataProducer(Thread):
 	def __init__(self):
 		Thread.__init__(self)
 		self.publisher = RepoSocketPublisher(12345)
-		self.prefix = pyccn.Name(["wentao.shang","cuerda1"]).appendVersion()
+		self.prefix = pyccn.Name("/ndn/ucla.edu/apps/cuerda/sensor/accelerometer").appendVersion()
 		
 		self.loadAndPublishKey()
 		
