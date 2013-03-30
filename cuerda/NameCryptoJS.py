@@ -39,8 +39,11 @@ class NameCrypto:
 		hh = hashlib.sha256()
 		hh.update(app_code)
 		app_id = hh.digest()
-	
-		n = app_id + app_code
+		
+		n_list = []
+		n_list.append(app_id)
+		n_list.append(app_code)
+		n = ''.join(n_list)
 	
 		hasher = hmac.new(secret, digestmod = hashlib.sha256)
 		hasher.update(n)
@@ -55,7 +58,11 @@ class NameCrypto:
 		
 		n_name = pyccn._pyccn.dump_charbuf(name.ccn_data)
 		
-		m = n_name + app_code + n_state
+		m_list = []
+		m_list.append(n_name)
+		m_list.append(app_code)
+		m_list.append(n_state)
+		m = ''.join(m_list)
 		
 		hasher = hmac.new(shared_key, digestmod = hashlib.sha256)
 		hasher.update(m)
@@ -64,7 +71,13 @@ class NameCrypto:
 		app_len = len(app_code)
 		n_app_len = struct.pack('!H', app_len)
 		
-		n = NameCrypto.SK_AUTH_MAGIC + n_app_len + app_code + n_state + n_mac
+		n_list = []
+		n_list.append(NameCrypto.SK_AUTH_MAGIC)
+		n_list.append(n_app_len)
+		n_list.append(app_code)
+		n_list.append(n_state)
+		n_list.append(n_mac)
+		n = ''.join(n_list)
 		
 		return name.append(n)
 		
@@ -92,7 +105,11 @@ class NameCrypto:
 
 		n_mac = n_crypto[(NameCrypto.AUTH_MAGIC_LEN + 2 + app_len + 16):]
 
-		m = n1_rstr + app_code + n_state
+		m_list = []
+		m_list.append(n1_rstr)
+		m_list.append(app_code)
+		m_list.append(n_state)
+		m = ''.join(m_list)
 
 		hasher = hmac.new(shared_key, digestmod = hashlib.sha256)
 		hasher.update(m)
