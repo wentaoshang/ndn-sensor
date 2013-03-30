@@ -1,6 +1,8 @@
 import pyccn
 import hashlib
 import hmac
+import struct
+import time
 
 def byte_to_hex( byteStr ):
 	return ''.join( [ "%02x" % ord( x ) for x in byteStr ] ).strip()
@@ -34,7 +36,7 @@ print byte_to_hex(app_key)
 #     Verification
 #############################
 
-name_str = '/ndn/ucla.edu/apps/cuerda/%40%96%1CQ%00%06cuerdaQV%03%5D%00%00%A0%28%00%00%00%02%00%00%00%00%E2%17yF%DA%DB8oO%CCUb%087%AE%A3%A1%B3%5E%87K%A3%7C%A5%8A%9Ao%CEH%05%FC%D1'
+name_str = '/ndn/ucla.edu/apps/cuerda/%40%96%1CQ%00%06cuerdaQV6%E9%00%08%E5X%00%00%00%02%00%00%00%00u0%F7%86u%18%D8A%FFo.%EB%EC%19%DBW%3F%15%F7%C7%FA%BD%FF%E7%EF%88%B6S%9C3L4'
 
 n = pyccn.Name(name_str)
 
@@ -47,6 +49,12 @@ app_len = (ord(n_crypto[4]) << 8) + ord(n_crypto[5])
 
 app_code = n_crypto[6: (6 + app_len)]
 n_state = n_crypto[(6 + app_len) : (6 + app_len + 16)]
+state = struct.unpack('!IIII', n_state)
+print state
+
+d = state[0] + state[1] / 1000000.0
+print d
+print time.time()
 
 app_key = generate_shared_key(secret, app_code)
 print byte_to_hex(app_key)
