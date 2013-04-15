@@ -39,14 +39,9 @@ class NameCrypto:
 		hh = hashlib.sha256()
 		hh.update(app_code)
 		app_id = hh.digest()
-		
-		n_list = []
-		n_list.append(app_id)
-		n_list.append(app_code)
-		n = ''.join(n_list)
 	
 		hasher = hmac.new(secret, digestmod = hashlib.sha256)
-		hasher.update(n)
+		hasher.update(app_id)
 		shared_key = hasher.digest()
 	
 		return shared_key

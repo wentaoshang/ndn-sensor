@@ -46,7 +46,7 @@ class SensorDataProducer(Thread):
 			
 			#print str(int(time.time() * 1000000)) + ": " + str(content)
 			
-		 	entry = {'ts': now, 'acx': random(), 'acy': random(), 'acz': random()}
+		 	entry = {'ts': now, 'acx': random() * 20.0, 'acy': random() * 100.0, 'acz': random() * 50.0}
 		
 			timestamp = struct.pack("!Q", now) # timestamp is in milliseconds
 			
