@@ -92,9 +92,10 @@ class NameCrypto:
 
 		d = state.tv_sec + state.tv_usec / 1000000.0
 		now = time.time()
-	
-		if (d > now) or ((d + window) < now):
-			return False
+		
+		if (window >= 0):
+			if ((d > now) or (d + window) < now):
+				return False
 
 		shared_key = NameCrypto.generate_shared_key(secret, app_code)
 
