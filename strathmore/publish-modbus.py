@@ -24,20 +24,18 @@ class RepoSocketPublisher(pyccn.Closure):
 	def put(self, content):
 		self.sock.send(_pyccn.dump_charbuf(content.ccn_data))
 
-class SensorDataLogger(Thread):
+class SensorDataLogger:
 	def __init__(self, data_interval):
-		Thread.__init__(self)
-		
 		# connect to modbus
 		self.master = modbus_tcp.TcpMaster("172.17.66.246", 502)
 		self.master.set_timeout(5.0)
 		
 		# connect to local repo
 		self.publisher = RepoSocketPublisher(12345)
-		self.prefix = pyccn.Name(["wentao.shang","logtest1"]).appendVersion()
+		self.prefix = pyccn.Name("/ndn/ucla.edu/apps/cps/strathmore").appendVersion()
 		self.interval = data_interval # in seconds
 		
-		self.aggregate = 10 # 10 samples per content object
+		self.aggregate = 60 # 60 samples per content object
 		
 		self.loadAndPublishKey()
 		
@@ -45,7 +43,7 @@ class SensorDataLogger(Thread):
 	def loadAndPublishKey(self):
 		self.key = pyccn.Key()
 		self.key.fromPEM(filename = keyFile)
-		self.keyName = pyccn.Name(["wentao.shang", "keys"]).appendKeyID(self.key).appendVersion().appendSegment(0)
+		self.keyName = self.prefix.append("key").appendKeyID(self.key).appendSegment(0)
 		self.si = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.keyName))
 		
 		key_co = pyccn.ContentObject()
@@ -56,7 +54,6 @@ class SensorDataLogger(Thread):
 		self.publisher.put(key_co)
 		
 	def run(self):
-		print "child thread started..."
 		sample_count = 1
 		data_list = []
 		
@@ -88,13 +85,7 @@ class SensorDataLogger(Thread):
 			
 			sample_count = sample_count + 1
 			time.sleep(self.interval)
-		
-		print "leave child thread"
 
 if __name__ == "__main__":
-	print "main thread started..."
 	logger = SensorDataLogger(data_interval = 1.0) # sample at every 1 second
-	logger.start()
-	logger.join()
-	print "leave main thread"
-	
+	logger.run()
