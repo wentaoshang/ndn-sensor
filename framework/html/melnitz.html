@@ -18,8 +18,8 @@
 			</div>
 			<div id="navbar_blue">
 				<ul>
-					<li><a href="status.html" class="active">Snapshot - Strathmore</a></li>
-					<li><a href="random.html">Snapshot - Melnitz</a></li>
+					<li><a href="strathmore.html">Snapshot - Strathmore</a></li>
+					<li><a href="melnitz.html" class="active">Snapshot - Melnitz</a></li>
 					<li><a href="about.html">About</a></li>
 				</ul>
 			</div>
@@ -31,26 +31,11 @@
 		
 		<article>
 			<div id="summary">
-				<div class="titles">
-					<p>Strathmore Building</p>
-				</div>
-				
-				<div>
-					<img src="img/strathmore.png" style="width:200px; position: absolute; left: 63%; top: 164px;"/>
-				</div>
-				
-				<p>Electrical Demand - Current (unit: Amperes)</p>
-				<div id="current">
+				<div class="titles"><p>MLNTZ.PNL.J.DEMAND (in kW): </p></div>
+				<div id="pw">
 				</div>
 				<hr style="color: #66FFFF;" />
-				<div id="cur_time">
-				</div>
-
-				<p>Electrical Demand - Voltage (unit: Volts)</p>
-				<div id="voltage">
-				</div>
-				<hr style="color: #66FFFF;" />
-				<div id="vol_time">
+				<div id="pw_time">
 				</div>
 			</div>
 <!--
@@ -120,66 +105,19 @@
 			$("#loader").fadeOut(50);
 			$("article").fadeIn(100);
 			
-			// Draw current
-			var cur = document.getElementById('current');
+			var pw = document.getElementById('pw');
 			
 			// Data Format:
-			var cur_data = [this.x, this.y2];
+			var series_data = [[this.x, this.y1]];
 			
 			// TimeSeries Template Options
-			var cur_options = {
+			var options = {
 				// Container to render inside of
-				container : cur,
+				container : pw,
 				// Data for detail (top chart) and summary (bottom chart)
 				data : {
-					detail : cur_data,
-					summary : cur_data
-				},
-				// An initial selection
-				selection : {
-					data : {
-						x : {
-							min : Math.round(0.191 * this.sample_num),
-							max : Math.round(0.382 * this.sample_num)
-						}
-					}
-				},
-				defaults : {
-					detail : {
-						config : {
-							yaxis : {
-								//autoscale : false,
-								showLabels : true,
-								noTicks : 6,
-								//ticks : [[220, ''], 230, 240, 250, 260, 270],
-								//min : 220,
-								//max : 270
-							}
-						}
-					}
-				}
-			};
-
-			// Create the TimeSeries
-			new envision.templates.TimeSeries(cur_options);
-			
-			var cur_time = document.getElementById('cur_time');
-			this.display_time(cur_time);
-			
-			// Draw voltage
-			var vol = document.getElementById('voltage');
-			
-			// Data Format:
-			var vol_data = [this.x, this.y1];
-			
-			// TimeSeries Template Options
-			var vol_options = {
-				// Container to render inside of
-				container : vol,
-				// Data for detail (top chart) and summary (bottom chart)
-				data : {
-					detail : vol_data,
-					summary : vol_data
+					detail : series_data,
+					summary : series_data
 				},
 				// An initial selection
 				selection : {
@@ -207,10 +145,10 @@
 			};
 
 			// Create the TimeSeries
-			new envision.templates.TimeSeries(vol_options);
+			new envision.templates.TimeSeries(options);
 			
-			var vol_time = document.getElementById('vol_time');
-			this.display_time(vol_time);
+			var pw_time = document.getElementById('pw_time');
+			this.display_time(pw_time);
 		}
 
 		AsyncGetClosure.prototype.upcall = function(kind, upcallInfo) {
@@ -248,10 +186,10 @@
 				var json_obj = jQuery.parseJSON(json_text).data;
 				
 				// Record the data samples
-				for (i = 0; i < json_obj.length; i++) {
+				for (var i = 0; i < json_obj.length; i++) {
 					this.x.push(i + this.sample_num);
-					this.y1.push(json_obj[i].vlna);
-					this.y2.push(json_obj[i].la / 10);
+					this.y1.push(json_obj[i].pw);
+					//this.y2.push(60 - i * 4);
 				}
 				
 				this.sample_num += json_obj.length;
@@ -298,7 +236,7 @@
 			template.answerOriginKind = 0;
 			template.interestLifetime = 1000;
 			
-			var name = new Name("/wentao.shang/test");
+			var name = new Name("/ndn/ucla.edu/apps/cps/melnitz/TV1/PanelJ");
 			var fsm_closure = new AsyncGetClosure(name, range);
 
 			ndn.expressInterest(name, fsm_closure, template);
@@ -315,7 +253,7 @@
 	
 			if (detect()) {
 				openHandle = function() { begin() };
-				ndn = new NDN({port:9696, host:"ndnucla-staging.dyndns.org", onopen:openHandle});
+				ndn = new NDN({port:9696, host:"localhost", onopen:openHandle});
 				ndn.transport.connectWebSocket(ndn);
 			}
 		});

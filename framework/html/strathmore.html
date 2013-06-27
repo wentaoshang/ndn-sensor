@@ -18,8 +18,8 @@
 			</div>
 			<div id="navbar_blue">
 				<ul>
-					<li><a href="status.html">Snapshot - Strathmore</a></li>
-					<li><a href="random.html" class="active">Snapshot - Melnitz</a></li>
+					<li><a href="strathmore.html" class="active">Snapshot - Strathmore</a></li>
+					<li><a href="melnitz.html">Snapshot - Melnitz</a></li>
 					<li><a href="about.html">About</a></li>
 				</ul>
 			</div>
@@ -31,20 +31,27 @@
 		
 		<article>
 			<div id="summary">
-				<div class="titles"><p>Status Summary: </p></div>
-				<div id="container">
+				<div class="titles">
+					<p>Strathmore Building</p>
+				</div>
+				
+				<div>
+					<img src="img/strathmore.png" style="width:200px; position: absolute; left: 63%; top: 164px;"/>
+				</div>
+				
+				<p>Electrical Demand - Current (unit: Amperes)</p>
+				<div id="current">
 				</div>
 				<hr style="color: #66FFFF;" />
-				<table style="width: 100%; margin-top: -12px">
-					<tr>
-						<td width="20%">10 mins ago</td>
-						<td width="20%">8 mins ago</td>
-						<td width="20%">6 mins ago</td>
-						<td width="20%">4 mins ago</td>
-						<td width="15%">2 mins ago</td>
-						<td width="5%" align="right">Now</td>
-					</tr>
-				</table>
+				<div id="cur_time">
+				</div>
+
+				<p>Electrical Demand - Voltage (unit: Volts)</p>
+				<div id="voltage">
+				</div>
+				<hr style="color: #66FFFF;" />
+				<div id="vol_time">
+				</div>
 			</div>
 <!--
 			<div id="meta">
@@ -97,23 +104,36 @@
 			this.sample_num = 0;
 		};
 		
+		AsyncGetClosure.prototype.display_time = function(container) {
+			var now = this.range[1];
+			
+			container.innerHTML = '<table style="width: 100%; margin-top: -12px"><tr>' + 
+						'<td width="20%">' + (new Date(now - 600000)).toTimeString().substr(0, 8) + '</td>' + 
+						'<td width="20%">' + (new Date(now - 480000)).toTimeString().substr(0, 8) + '</td>' + 
+						'<td width="20%">' + (new Date(now - 360000)).toTimeString().substr(0, 8) + '</td>' +
+						'<td width="20%">' + (new Date(now - 240000)).toTimeString().substr(0, 8) + '</td>' +
+						'<td width="15%">' + (new Date(now - 120000)).toTimeString().substr(0, 8) + '</td>' +
+						'<td width="5%" align="right">' + (new Date(now)).toTimeString().substr(0, 8) + '</td></tr></table>';
+		}
+		
 		AsyncGetClosure.prototype.display_data = function() {
 			$("#loader").fadeOut(50);
 			$("article").fadeIn(100);
 			
-			var container = document.getElementById('container');
+			// Draw current
+			var cur = document.getElementById('current');
 			
 			// Data Format:
-			var series_data = [[this.x, this.y1], [this.x, this.y2]];
+			var cur_data = [this.x, this.y2];
 			
 			// TimeSeries Template Options
-			var options = {
+			var cur_options = {
 				// Container to render inside of
-				container : container,
+				container : cur,
 				// Data for detail (top chart) and summary (bottom chart)
 				data : {
-					detail : series_data,
-					summary : series_data
+					detail : cur_data,
+					summary : cur_data
 				},
 				// An initial selection
 				selection : {
@@ -123,11 +143,74 @@
 							max : Math.round(0.382 * this.sample_num)
 						}
 					}
+				},
+				defaults : {
+					detail : {
+						config : {
+							yaxis : {
+								//autoscale : false,
+								showLabels : true,
+								noTicks : 6,
+								//ticks : [[220, ''], 230, 240, 250, 260, 270],
+								//min : 220,
+								//max : 270
+							}
+						}
+					}
 				}
 			};
 
 			// Create the TimeSeries
-			new envision.templates.TimeSeries(options);
+			new envision.templates.TimeSeries(cur_options);
+			
+			var cur_time = document.getElementById('cur_time');
+			this.display_time(cur_time);
+			
+			// Draw voltage
+			var vol = document.getElementById('voltage');
+			
+			// Data Format:
+			var vol_data = [this.x, this.y1];
+			
+			// TimeSeries Template Options
+			var vol_options = {
+				// Container to render inside of
+				container : vol,
+				// Data for detail (top chart) and summary (bottom chart)
+				data : {
+					detail : vol_data,
+					summary : vol_data
+				},
+				// An initial selection
+				selection : {
+					data : {
+						x : {
+							min : Math.round(0.191 * this.sample_num),
+							max : Math.round(0.382 * this.sample_num)
+						}
+					}
+				},
+				defaults : {
+					detail : {
+						config : {
+							yaxis : {
+								//autoscale : false,
+								showLabels : true,
+								noTicks : 6,
+								//ticks : [[268, ''], 270, 272, 274, 276, 278, 280],
+								//min : 268,
+								//max : 280
+							}
+						}
+					}
+				}
+			};
+
+			// Create the TimeSeries
+			new envision.templates.TimeSeries(vol_options);
+			
+			var vol_time = document.getElementById('vol_time');
+			this.display_time(vol_time);
 		}
 
 		AsyncGetClosure.prototype.upcall = function(kind, upcallInfo) {
@@ -165,10 +248,10 @@
 				var json_obj = jQuery.parseJSON(json_text).data;
 				
 				// Record the data samples
-				for (i = 0; i < json_obj.length; i++) {
+				for (var i = 0; i < json_obj.length; i++) {
 					this.x.push(i + this.sample_num);
-					this.y1.push(json_obj[i].val);
-					this.y2.push(60 - i * 4);
+					this.y1.push(json_obj[i].vlna);
+					this.y2.push(json_obj[i].la / 10);
 				}
 				
 				this.sample_num += json_obj.length;
@@ -215,7 +298,7 @@
 			template.answerOriginKind = 0;
 			template.interestLifetime = 1000;
 			
-			var name = new Name("/wentao.shang/logtest");
+			var name = new Name("/ndn/ucla.edu/apps/cps/strathmore");
 			var fsm_closure = new AsyncGetClosure(name, range);
 
 			ndn.expressInterest(name, fsm_closure, template);
