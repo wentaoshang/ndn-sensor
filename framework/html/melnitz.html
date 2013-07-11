@@ -51,13 +51,11 @@
     </footer>
 
 	<!-- Load scripts at the bottom for efficiency -->
-	<script type="text/javascript" src="js/jquery.min.js"></script>
-	<script type="text/javascript" src="js/ndn.min.js"></script>
-	<script type="text/javascript" src="js/content.js"></script>
-	<script type="text/javascript" src="js/detect.js"></script>
-	<script type="text/javascript" src="js/envision.min.js"></script>
+	<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+	<script src="js/ndn.min.js"></script>
+	<script src="js/envision.min.js"></script>
 
-	<script type="text/javascript">
+	<script>
 		function UnsignedIntToArrayBuffer(value) {
 			if (value <= 0)
 				return new Uint8Array([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]);
@@ -243,11 +241,9 @@
 		$(document).ready(function() {
 			$("#all").fadeIn(1000);
 	
-			if (detect()) {
-				openHandle = function() { begin() };
-				ndn = new NDN({port:9696, host:"ndnucla-staging.dyndns.org", onopen:openHandle});
-				ndn.connect();
-			}
+			var openHandle = function() { begin() };
+			ndn = new NDN({port:9696, host:"ndnucla-staging.dyndns.org", onopen:openHandle});
+			ndn.connect();
 		});
 	</script>
 </body>
