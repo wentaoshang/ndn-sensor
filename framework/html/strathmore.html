@@ -2,7 +2,7 @@
 <html>  
 <head>
 	<meta charset="utf-8">
-	<title>NDN Sensor Data</title>
+	<title>NDN Building Monitoring System</title>
 
 	<!-- Load styles -->
 	<link href="http://fonts.googleapis.com/css?family=Rambla:400,700|Istok+Web:400,700" rel="stylesheet" type="text/css">
@@ -67,7 +67,7 @@
 
 	<!-- Load scripts at the bottom for efficiency -->
 	<script type="text/javascript" src="js/jquery.min.js"></script>
-	<script type="text/javascript" src="js/ndn-js.js"></script>
+	<script type="text/javascript" src="js/ndn.min.js"></script>
 	<script type="text/javascript" src="js/content.js"></script>
 	<script type="text/javascript" src="js/detect.js"></script>
 	<script type="text/javascript" src="js/envision.min.js"></script>
@@ -91,8 +91,6 @@
 		};
 	
 		var AsyncGetClosure = function AsyncGetClosure(prfx, range) {
-			Closure.call(this);
-			
 			this.version = null; // uint8array for the version code
 			this.prefix = prfx; // prefix for the namespace (excluding the version code)
 			this.data_prefix = null;
@@ -104,19 +102,19 @@
 			this.sample_num = 0;
 		};
 		
-		AsyncGetClosure.prototype.display_time = function(container) {
-			var now = this.range[1];
+		var display_time = function (container) {
+			var now = dataStat.range[1];
 			
 			container.innerHTML = '<table style="width: 100%; margin-top: -12px"><tr>' + 
-						'<td width="20%">' + (new Date(now - 600000)).toTimeString().substr(0, 8) + '</td>' + 
-						'<td width="20%">' + (new Date(now - 480000)).toTimeString().substr(0, 8) + '</td>' + 
-						'<td width="20%">' + (new Date(now - 360000)).toTimeString().substr(0, 8) + '</td>' +
-						'<td width="20%">' + (new Date(now - 240000)).toTimeString().substr(0, 8) + '</td>' +
-						'<td width="15%">' + (new Date(now - 120000)).toTimeString().substr(0, 8) + '</td>' +
+						'<td width="20%">' + (new Date(now - 3600000)).toTimeString().substr(0, 8) + '</td>' + 
+						'<td width="20%">' + (new Date(now - 2880000)).toTimeString().substr(0, 8) + '</td>' + 
+						'<td width="20%">' + (new Date(now - 2160000)).toTimeString().substr(0, 8) + '</td>' +
+						'<td width="20%">' + (new Date(now - 1440000)).toTimeString().substr(0, 8) + '</td>' +
+						'<td width="15%">' + (new Date(now - 720000)).toTimeString().substr(0, 8) + '</td>' +
 						'<td width="5%" align="right">' + (new Date(now)).toTimeString().substr(0, 8) + '</td></tr></table>';
 		}
 		
-		AsyncGetClosure.prototype.display_data = function() {
+		var display_data = function () {
 			$("#loader").fadeOut(50);
 			$("article").fadeIn(100);
 			
@@ -124,7 +122,7 @@
 			var cur = document.getElementById('current');
 			
 			// Data Format:
-			var cur_data = [this.x, this.y2];
+			var cur_data = [dataStat.x, dataStat.y2];
 			
 			// TimeSeries Template Options
 			var cur_options = {
@@ -139,8 +137,8 @@
 				selection : {
 					data : {
 						x : {
-							min : Math.round(0.191 * this.sample_num),
-							max : Math.round(0.382 * this.sample_num)
+							min : Math.round(0.191 * dataStat.sample_num),
+							max : Math.round(0.382 * dataStat.sample_num)
 						}
 					}
 				},
@@ -164,13 +162,13 @@
 			new envision.templates.TimeSeries(cur_options);
 			
 			var cur_time = document.getElementById('cur_time');
-			this.display_time(cur_time);
+			display_time(cur_time);
 			
 			// Draw voltage
 			var vol = document.getElementById('voltage');
 			
 			// Data Format:
-			var vol_data = [this.x, this.y1];
+			var vol_data = [dataStat.x, dataStat.y1];
 			
 			// TimeSeries Template Options
 			var vol_options = {
@@ -185,8 +183,8 @@
 				selection : {
 					data : {
 						x : {
-							min : Math.round(0.191 * this.sample_num),
-							max : Math.round(0.382 * this.sample_num)
+							min : Math.round(0.191 * dataStat.sample_num),
+							max : Math.round(0.382 * dataStat.sample_num)
 						}
 					}
 				},
@@ -210,83 +208,78 @@
 			new envision.templates.TimeSeries(vol_options);
 			
 			var vol_time = document.getElementById('vol_time');
-			this.display_time(vol_time);
+			display_time(vol_time);
 		}
 
-		AsyncGetClosure.prototype.upcall = function(kind, upcallInfo) {
-			if (kind == Closure.UPCALL_FINAL) {
-				// Do nothing.
-			} else if (kind == Closure.UPCALL_CONTENT) {
-				var content = upcallInfo.contentObject;
-				var co_name = content.name;
-				//console.log(co_name.getName());
+		var onData = function (inst, co) {
+			var co_name = co.name;
+            //console.log(co_name.to_uri());
 				
-				if (this.version == null) {
-					var vpos = this.prefix.components.length;
-					this.version = co_name.components[vpos];
-					//console.log(this.version);
+			if (dataStat.version == null) {
+				var vpos = dataStat.prefix.components.length;
+				dataStat.version = co_name.components[vpos];
+				//console.log(dataStat.version);
 					
-					this.data_prefix = new Name(this.prefix).add(this.version).add('index');
-					//console.log(this.data_prefix.getName());
-					//console.log(this.prefix.getName());
+				dataStat.data_prefix = new Name(dataStat.prefix).add(dataStat.version).add('index');
+				//console.log(dataStat.data_prefix.to_uri());
+				//console.log(dataStat.prefix.to_uri());
 					
-					// Send interest to get the latest content.
-					var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(this.range[0])]);
-					
-					var template = new Interest();
-					template.childSelector = 0;
-					template.answerOriginKind = 0;
-					template.interestLifetime = 1000;
-					template.exclude = filter;
-					
-					ndn.expressInterest(this.data_prefix, this, template);
-					
-					return Closure.RESULT_OK;
-				}
+				// Send interest to get the latest content.
+				var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(dataStat.range[0])]);
 				
-				var json_text = DataUtils.toString(content.content);
-				var json_obj = jQuery.parseJSON(json_text).data;
+				var template = new Interest();
+				template.childSelector = 0;
+				template.answerOriginKind = 0;
+				template.interestLifetime = 1000;
+				template.exclude = filter;
 				
-				// Record the data samples
-				for (var i = 0; i < json_obj.length; i++) {
-					this.x.push(i + this.sample_num);
-					this.y1.push(json_obj[i].vlna);
-					this.y2.push(json_obj[i].la / 10);
-				}
-				
-				this.sample_num += json_obj.length;
-				
-				if (this.sample_num >= 600) {
-					// We have collected enough samples. Display in time series
-					this.display_data();
-				} else {
-					// Send interest for the next content object
-					var tpos = co_name.components.length - 1;
-					var ts = co_name.components[tpos];
-					//console.log(ts);
-					
-					var filter = new Exclude([Exclude.ANY, ts]);
-					
-					var template = new Interest();
-					template.childSelector = 0;
-					template.interestLifetime = 1000;
-					template.exclude = filter;
-					
-					ndn.expressInterest(this.data_prefix, this, template);
-				}
-				
-			} else if (kind == Closure.UPCALL_INTEREST_TIMED_OUT) {
-				console.log("Closure.upcall called with interest time out.");
-				
-				if (this.sample_num > 0) {
-					// Display what we have up to now
-					this.display_data();
-				}
-				
+				ndn.expressInterest(dataStat.data_prefix, template, onData, onTimeout);
+				return;
 			}
-			return Closure.RESULT_OK;
+			
+			var json_text = DataUtils.toString(co.content);
+			var json_obj = jQuery.parseJSON(json_text).data;
+			
+			// Record the data samples
+			for (var i = 0; i < json_obj.length; i++) {
+				dataStat.x.push(i + dataStat.sample_num);
+				dataStat.y1.push(json_obj[i].vlna);
+				dataStat.y2.push(json_obj[i].la / 10);
+			}
+			
+			dataStat.sample_num += json_obj.length;
+			
+			if (dataStat.sample_num >= 3600) {
+				// We have collected enough samples. Display in time series
+				display_data();
+			} else {
+				// Send interest for the next content object
+				var tpos = co_name.components.length - 1;
+				var ts = co_name.components[tpos];
+				//console.log(ts);
+				
+				var filter = new Exclude([Exclude.ANY, ts]);
+				
+				var template = new Interest();
+				template.childSelector = 0;
+				template.interestLifetime = 1000;
+				template.exclude = filter;
+				
+				ndn.expressInterest(dataStat.data_prefix, template, onData, onTimeout);
+			}
+		};
+		
+		var onTimeout = function (inst) {
+			console.log("Interest time out.");
+			console.log("Interest name is " + inst.name.to_uri());
+			
+			if (dataStat.sample_num > 0) {
+				// Display what we have up to now
+				display_data();
+			}
 		};
 
+        var dataStat;
 		function get_data_since(ago) {
 			var now = new Date();
 			var range = [now - ago, now]; // time range is in milliseconds
@@ -298,15 +291,15 @@
 			template.answerOriginKind = 0;
 			template.interestLifetime = 1000;
 			
-			var name = new Name("/ndn/ucla.edu/apps/cps/strathmore");
-			var fsm_closure = new AsyncGetClosure(name, range);
+			var prefix = new Name("/ndn/ucla.edu/apps/cps/strathmore/");
+			dataStat = new AsyncGetClosure(prefix, range);
 
-			ndn.expressInterest(name, fsm_closure, template);
+			ndn.expressInterest(prefix, template, onData, onTimeout);
 		}
 
 		// Calls to get the content data.
 		function begin() {
-			get_data_since(600000);
+			get_data_since(3600000);
 		}
 
 		var ndn;
@@ -316,7 +309,7 @@
 			if (detect()) {
 				openHandle = function() { begin() };
 				ndn = new NDN({port:9696, host:"ndnucla-staging.dyndns.org", onopen:openHandle});
-				ndn.transport.connectWebSocket(ndn);
+				ndn.connect();
 			}
 		});
 	</script>
