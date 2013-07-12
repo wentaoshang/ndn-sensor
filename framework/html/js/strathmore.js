@@ -201,6 +201,9 @@ var onTimeout = function (inst) {
     if (dataStat.sample_num > 0) {
 	// Display what we have up to now
 	display_data();
+    } else {
+	$("#loader").hide();
+	$("#error").fadeIn(100);
     }
 };
 
