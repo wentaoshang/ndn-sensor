@@ -26,8 +26,7 @@ from bacpypes.basetypes import ServicesSupported
 from bacpypes.errors import DecodingError
 
 import os, random, socket
-import pyccn
-from pyccn import _pyccn
+import ndn
 
 from threading import Thread
 
@@ -48,7 +47,7 @@ packet_ts = 0
 
 bac_app = None
 
-class RepoSocketPublisher(pyccn.Closure):
+class RepoSocketPublisher:
     def __init__(self, repo_port):
         self.repo_dest = ('127.0.0.1', int(repo_port))
 
@@ -56,7 +55,7 @@ class RepoSocketPublisher(pyccn.Closure):
         self.sock.connect(self.repo_dest)
 
     def put(self, content):
-        self.sock.send(_pyccn.dump_charbuf(content.ccn_data))
+        self.sock.send(content.get_ccnb())
 
 class BACnetAggregator(BIPSimpleApplication, Logging):
 
@@ -201,25 +200,25 @@ class BACnetDataLogger(Thread):
 		
         # connect to local repo
         self.publisher = RepoSocketPublisher(12345)
-        self.prefix = pyccn.Name("/ndn/ucla.edu/apps/cps/melnitz/TV1/PanelJ").appendVersion()
+        self.prefix = ndn.Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ").appendVersion()
         self.interval = 1.0 # in seconds
 		
         self.aggregate = 60 # 60 samples per content object
 		
-        self.loadAndPublishKey()
+        self.loadKey()
         
-    def loadAndPublishKey(self):
-        self.key = pyccn.Key()
+    def loadKey(self):
+        self.key = ndn.Key()
         self.key.fromPEM(filename = key_file)
-        self.key_name = self.prefix.append("key").appendKeyID(self.key).appendSegment(0)
-        self.si = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.key_name))
+        self.key_name = ndn.Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ").append("keys").appendKeyID(self.key)
+        self.si = ndn.SignedInfo(self.key.publicKeyID, ndn.KeyLocator(self.key_name))
         
-        key_co = pyccn.ContentObject()
-        key_co.name = self.key_name
-        key_co.content = self.key.publicToDER()
-        key_co.signedInfo = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.key), type = pyccn.CONTENT_KEY, final_block = b'\x00')
-        key_co.sign(self.key)
-        self.publisher.put(key_co)
+        #key_co = pyccn.ContentObject()
+        #key_co.name = self.key_name
+        #key_co.content = self.key.publicToDER()
+        #key_co.signedInfo = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.key), type = pyccn.CONTENT_KEY, final_block = b'\x00')
+        #key_co.sign(self.key)
+        #self.publisher.put(key_co)
         
     def run(self):
         # wait for the BACnet service to start
@@ -231,7 +230,7 @@ class BACnetDataLogger(Thread):
         # and exit...
 
     def publish_data(self, payload, timestamp):
-        co = pyccn.ContentObject()
+        co = ndn.ContentObject()
         co.name = self.prefix.append("index").append(timestamp)
         co.content = json.dumps(payload)
         co.signedInfo = self.si

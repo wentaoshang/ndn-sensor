@@ -1,3 +1,19 @@
+var CpsMelnitzPolicy = new IdentityPolicy(
+    // anchors
+    [
+{ key_name: new Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ/keys/%C1.M.K%00i%23%91q%BC%05lH%16%B6%3B%B1%85%D7%F7%A9%ED%2C%E4%93%8D+k%C6%FEb%A2%60%F3%AA%C8%24"), 
+  namespace: new Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ"),
+  key: Key.createFromPEM({ pub: "-----BEGIN PUBLIC KEY-----\n" + 
+			   "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC4kgAG4nqPeR9ITU/joBTUI+NJ\n" +
+			   "WRfh0dwjHmN3GH1/oysHtxJMiYS/6twztRJtwrxcLgaXYQ97Ii30PZe9tkAx+BNa\n" +
+			   "k2c7TACiO8mEB1pk9pJ9pGYzHnZC2DJoaq3Hoh1icfEybg883Q48qAplsLxrC4np\n" +
+			   "SNsGJqfk4o7iSDDkmQIDAQAB\n" +
+			   "-----END PUBLIC KEY-----" }) }
+	],
+    // rules
+    []
+	);
+
 function UnsignedIntToArrayBuffer(value) {
     if (value <= 0)
 	return new Uint8Array([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]);
@@ -13,9 +29,9 @@ function UnsignedIntToArrayBuffer(value) {
 	value = Math.floor(value / 256);
     }
     return result;
-};
+}
 	
-var AsyncGetClosure = function AsyncGetClosure(prfx, range) {
+var DataStat = function DataStat(prfx, range) {
     this.version = null; // uint8array for the version code
     this.prefix = prfx; // prefix for the namespace (excluding the version code)
     this.data_prefix = null;
@@ -90,6 +106,17 @@ var display_data = function () {
 };
 
 var onData = function (inst, co) {
+    CpsMelnitzPolicy.verify(co, function (result) {
+	    if (result == VerifyResult.SUCCESS) {
+		processData(co);
+	    } else if (result == VerifyResult.FAILURE)
+		console.log('Verification failed.');
+	    else if (result == VerifyResult.TIMEOUT)
+		console.log('Verification failed due to timeout.');
+	});
+};
+
+var processData = function (co) {
     var co_name = co.name;
     //console.log(co_name.to_uri());
     
@@ -171,15 +198,10 @@ function get_data_since(ago) {
     template.answerOriginKind = 0;
     template.interestLifetime = 1000;
     
-    var name = new Name("/ndn/ucla.edu/apps/cps/melnitz/TV1/PanelJ");
-    dataStat = new AsyncGetClosure(name, range);
+    var name = new Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ");
+    dataStat = new DataStat(name, range);
     
     ndn.expressInterest(name, template, onData, onTimeout);
-}
-
-// Calls to get the content data.
-function begin() {
-    get_data_since(600000);
 }
 
 var ndn;
@@ -187,7 +209,7 @@ var ndn;
 $(document).ready(function() {
 	$("#all").fadeIn(1000);
 	
-	var openHandle = function() { begin() };
-	ndn = new NDN({port:9696, host:"ndnucla-staging.dyndns.org", onopen:openHandle});
+	ndn = new NDN({port:9696, host:"localhost"});
+	ndn.onopen = function() { get_data_since(600000); };
 	ndn.connect();
     });
