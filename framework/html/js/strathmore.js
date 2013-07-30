@@ -15,7 +15,7 @@ function UnsignedIntToArrayBuffer(value) {
     return result;
 };
 	
-var AsyncGetClosure = function AsyncGetClosure(prfx, range) {
+var DataStat = function DataStat(prfx, range) {
     this.version = null; // uint8array for the version code
     this.prefix = prfx; // prefix for the namespace (excluding the version code)
     this.data_prefix = null;
@@ -203,6 +203,7 @@ var onTimeout = function (inst) {
 	display_data();
     } else {
 	$("#loader").hide();
+	$('#error').append("<p>Currently I'm connected to " + hub + ". Refresh me to try another hub.</p>");
 	$("#error").fadeIn(100);
     }
 };
@@ -220,22 +221,18 @@ function get_data_since(ago) {
     template.interestLifetime = 1000;
 			
     var prefix = new Name("/ndn/ucla.edu/apps/cps/strathmore/");
-    dataStat = new AsyncGetClosure(prefix, range);
+    dataStat = new DataStat(prefix, range);
 
     ndn.expressInterest(prefix, template, onData, onTimeout);
 }
 
-// Calls to get the content data.
-function begin() {
-    get_data_since(3600000);
-}
-
 var ndn;
+var hub = selectRandomHub();
 
 $(document).ready(function() {
 	$("#all").fadeIn(1000);
 	
-	var openHandle = function() { begin() };
-	ndn = new NDN({port:9696, host:"ndnucla-staging.dyndns.org", onopen:openHandle});
+	var openHandle = function() { get_data_since(3600000); };
+	ndn = new NDN({port:9696, host:hub, onopen:openHandle});
 	ndn.connect();
     });

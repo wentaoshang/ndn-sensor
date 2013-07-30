@@ -28,12 +28,21 @@ from bacpypes.errors import DecodingError
 import os, random, socket
 import ndn
 
+import binascii
+from Crypto.Cipher import AES
+
 from threading import Thread
 
 import time
 import json
 import struct
 
+BS = 16
+pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
+unpad = lambda s : s[0:-ord(s[-1])]
+
+key = binascii.unhexlify('389ad5f8fc26f076e0ba200c9b42f669d07066032df8a33b88d49c1763f80783')
+iv = binascii.unhexlify('6db084450abc0880277c1cabb85d552d')
 
 # some debugging
 _debug = 0
@@ -232,7 +241,8 @@ class BACnetDataLogger(Thread):
     def publish_data(self, payload, timestamp):
         co = ndn.ContentObject()
         co.name = self.prefix.append("index").append(timestamp)
-        co.content = json.dumps(payload)
+        encryptor = AES.new(key, AES.MODE_CBC, iv)
+        co.content = encryptor.encrypt(pad(json.dumps(payload)))
         co.signedInfo = self.si
         co.sign(self.key)
         self.publisher.put(co)

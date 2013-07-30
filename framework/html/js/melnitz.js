@@ -107,14 +107,17 @@ var display_data = function () {
 
 var onData = function (inst, co) {
     CpsMelnitzPolicy.verify(co, function (result) {
-	    if (result == VerifyResult.SUCCESS) {
-		processData(co);
-	    } else if (result == VerifyResult.FAILURE)
-		console.log('Verification failed.');
-	    else if (result == VerifyResult.TIMEOUT)
-		console.log('Verification failed due to timeout.');
-	});
+	if (result == VerifyResult.SUCCESS) {
+	    processData(co);
+	} else if (result == VerifyResult.FAILURE)
+	    console.log('Verification failed.');
+	else if (result == VerifyResult.TIMEOUT)
+	    console.log('Verification failed due to timeout.');
+    });
 };
+
+var key = CryptoJS.enc.Hex.parse('389ad5f8fc26f076e0ba200c9b42f669d07066032df8a33b88d49c1763f80783');
+var iv  = CryptoJS.enc.Hex.parse('6db084450abc0880277c1cabb85d552d');
 
 var processData = function (co) {
     var co_name = co.name;
@@ -142,9 +145,16 @@ var processData = function (co) {
 	return;
     }
     
-    var json_text = DataUtils.toString(co.content);
-    var json_obj = jQuery.parseJSON(json_text).data;
+    var ciphertext = CryptoJS.enc.Hex.parse(DataUtils.toHex(co.content));
+    var aesDecryptor = CryptoJS.algo.AES.createDecryptor(key, { iv: iv });
+    var p1 = aesDecryptor.process(ciphertext);
+    var p2 = aesDecryptor.finalize();
+    //console.log(p1.toString(CryptoJS.enc.Utf8));
+    //console.log(p2.toString(CryptoJS.enc.Utf8));
     
+    var json_text = p1.toString(CryptoJS.enc.Utf8) + p2.toString(CryptoJS.enc.Utf8);
+    var json_obj = jQuery.parseJSON(json_text).data;
+
     // Record the data samples
     for (var i = 0; i < json_obj.length; i++) {
 	dataStat.x.push(i + dataStat.sample_num);
