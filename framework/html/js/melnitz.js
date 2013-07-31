@@ -38,21 +38,22 @@ var DataStat = function DataStat(prfx, range) {
     this.range = range; // array of two integers [start, end], the time range within which we want to fetch the data
 			
     this.x = [];
+    this.ts = [];
     this.y1 = [];
     this.y2 = [];
     this.sample_num = 0;
 };
 		
 var display_time = function (container) {
-    var now = dataStat.range[1];
-			
+    var len = dataStat.ts.length;
+    
     container.innerHTML = '<table style="width: 100%; margin-top: -12px"><tr>' + 
-    '<td width="20%">' + (new Date(now - 600000)).toTimeString().substr(0, 8) + '</td>' + 
-    '<td width="20%">' + (new Date(now - 480000)).toTimeString().substr(0, 8) + '</td>' + 
-    '<td width="20%">' + (new Date(now - 360000)).toTimeString().substr(0, 8) + '</td>' +
-    '<td width="20%">' + (new Date(now - 240000)).toTimeString().substr(0, 8) + '</td>' +
-    '<td width="15%">' + (new Date(now - 120000)).toTimeString().substr(0, 8) + '</td>' +
-    '<td width="5%" align="right">' + (new Date(now)).toTimeString().substr(0, 8) + '</td></tr></table>';
+	'<td width="20%">' + (new Date(dataStat.ts[0])).toTimeString().substr(0, 8) + '</td>' + 
+	'<td width="20%">' + (new Date(dataStat.ts[Math.floor(len / 5)])).toTimeString().substr(0, 8) + '</td>' + 
+	'<td width="20%">' + (new Date(dataStat.ts[Math.floor(len / 5 * 2)])).toTimeString().substr(0, 8) + '</td>' +
+	'<td width="20%">' + (new Date(dataStat.ts[Math.floor(len / 5 * 3)])).toTimeString().substr(0, 8) + '</td>' +
+	'<td width="15%">' + (new Date(dataStat.ts[Math.floor(len / 5 * 4)])).toTimeString().substr(0, 8) + '</td>' +
+	'<td width="5%" align="right">' + (new Date(dataStat.ts[len - 1])).toTimeString().substr(0, 8) + '</td></tr></table>';
 };
 		
 var display_data = function () {
@@ -106,7 +107,7 @@ var display_data = function () {
 };
 
 var onData = function (inst, co) {
-    CpsMelnitzPolicy.verify(co, function (result) {
+    CpsMelnitzPolicy.verify(ndn, co, function (result) {
 	if (result == VerifyResult.SUCCESS) {
 	    processData(co);
 	} else if (result == VerifyResult.FAILURE)
@@ -158,6 +159,7 @@ var processData = function (co) {
     // Record the data samples
     for (var i = 0; i < json_obj.length; i++) {
 	dataStat.x.push(i + dataStat.sample_num);
+	dataStat.ts.push(json_obj[i].ts);
 	dataStat.y1.push(json_obj[i].pw);
     }
     
@@ -217,9 +219,9 @@ function get_data_since(ago) {
 var ndn;
 
 $(document).ready(function() {
-	$("#all").fadeIn(1000);
-	
-	ndn = new NDN({port:9696, host:"localhost"});
-	ndn.onopen = function() { get_data_since(600000); };
-	ndn.connect();
-    });
+    $("#all").fadeIn(1000);
+    
+    ndn = new NDN({port:9696, host:"localhost"});
+    ndn.onopen = function() { get_data_since(600000); };
+    ndn.connect();
+});

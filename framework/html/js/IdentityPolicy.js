@@ -23,7 +23,7 @@ TIMEOUT: 3  // Timeout when fetching the key chain
  * @param {Function} callback The callback function that is called when the verification process finishes.
  *  The prototype for this callback is function (result) {}, where 'result' is a flag indicating the verification result.
  */
-IdentityPolicy.prototype.verify = function (data, callback) {
+IdentityPolicy.prototype.verify = function (handle, data, callback) {
     if (this.anchors.length == 0)
 	return false;
     
@@ -61,7 +61,6 @@ IdentityPolicy.prototype.verify = function (data, callback) {
 	if (chain_length > self.chain_limit) {
 	    console.log('Abort identity verification due to over-limit chain length.');
 	    callback(VerifyResult.FAILURE);  // TODO: add a new status flag for this type of failure
-	    handle.close();
 	    return;
 	}
 
@@ -74,14 +73,12 @@ IdentityPolicy.prototype.verify = function (data, callback) {
 	    if (anchorKey != null) {
 		dataStack.push(co);
 		verifyStack(anchorKey);
-		handle.close();
 		return;
 	    }
 
 	    if (self.authorize_by_rules(co.name, keyName) == false) {
 		console.log('Verification suspended because policy rule checking failed.');
 		callback(VerifyResult.FAILURE);
-		handle.close();
 		return;
 	    }
 
@@ -95,11 +92,9 @@ IdentityPolicy.prototype.verify = function (data, callback) {
 	    var rootKey = new Key();
 	    rootKey.readDerPublicKey(co.content);
 	    verifyStack(rootKey);
-	    handle.close();
 	} else {
 	    // This should not happen.
 	    console.log('KeyLocator type is ' + loc.type);
-	    handle.close();  // This will cause the script to quit
 	}
     };
     
@@ -107,17 +102,9 @@ IdentityPolicy.prototype.verify = function (data, callback) {
 	console.log("Interest time out.");
 	console.log('Interest name: ' + interest.name.to_uri());
 	callback(VeriftResult.TIMEOUT);
-	handle.close();
     };
 
-    var handle = new NDN();
-
-    handle.onopen = function () {
-	// Call onData directly to do policy checking on the 'data' to be verified
-	onData(null, data);
-    };
-
-    handle.connect();
+    onData(null, data);
 };
 
 IdentityPolicy.prototype.authorize_by_anchors = function (/*Name*/ dataName, /*Name*/ keyName) {

@@ -148,7 +148,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
                 packet_ts = now
 
             # package into JSON
-            entry = {'ts': str(now), 'pw': value}
+            entry = {'ts': now, 'pw': value}
             data_cache.append(entry)
 			
             if sample_count % self.logger.aggregate == 0:
