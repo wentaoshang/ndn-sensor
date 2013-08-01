@@ -194,6 +194,7 @@ var onTimeout = function (inst) {
 	display_data();
     } else {
 	$("#loader").hide();
+	$('#error').append("<p>Currently I'm connected to " + hub + ". Refresh me to try another hub.</p>");
 	$("#error").fadeIn(100);
     }
 };
@@ -217,11 +218,12 @@ function get_data_since(ago) {
 }
 
 var ndn;
+var hub = 'localhost';
 
 $(document).ready(function() {
     $("#all").fadeIn(1000);
     
-    ndn = new NDN({port:9696, host:"localhost"});
+    ndn = new NDN({port:9696, host:hub});
     ndn.onopen = function() { get_data_since(600000); };
     ndn.connect();
 });

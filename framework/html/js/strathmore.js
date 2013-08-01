@@ -234,7 +234,7 @@ var hub = selectRandomHub();
 $(document).ready(function() {
     $("#all").fadeIn(1000);
     
-    ndn = new NDN({port:9696, host:"localhost"});
+    ndn = new NDN({port:9696, host:hub});
     ndn.onopen = function() { get_data_since(1800000); };
     ndn.connect();
 });

@@ -19,6 +19,7 @@ TIMEOUT: 3  // Timeout when fetching the key chain
 
 /**
  * Recursive verification closure
+ * @param {NDN} handle The connected NDN face
  * @param {ContentObject} data The parsed ContentObject to be verified
  * @param {Function} callback The callback function that is called when the verification process finishes.
  *  The prototype for this callback is function (result) {}, where 'result' is a flag indicating the verification result.
