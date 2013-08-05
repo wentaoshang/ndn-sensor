@@ -118,7 +118,7 @@ var onData = function (inst, co) {
 };
 
 var key = CryptoJS.enc.Hex.parse('389ad5f8fc26f076e0ba200c9b42f669d07066032df8a33b88d49c1763f80783');
-var iv  = CryptoJS.enc.Hex.parse('6db084450abc0880277c1cabb85d552d');
+var iv_len = 16;
 
 var processData = function (co) {
     var co_name = co.name;
@@ -146,7 +146,9 @@ var processData = function (co) {
 	return;
     }
     
-    var ciphertext = CryptoJS.enc.Hex.parse(DataUtils.toHex(co.content));
+    var msg = DataUtils.toHex(co.content);
+    var iv = CryptoJS.enc.Hex.parse(msg.substr(0, iv_len * 2));
+    var ciphertext = CryptoJS.enc.Hex.parse(msg.substr(iv_len * 2));
     var aesDecryptor = CryptoJS.algo.AES.createDecryptor(key, { iv: iv });
     var p1 = aesDecryptor.process(ciphertext);
     var p2 = aesDecryptor.finalize();
