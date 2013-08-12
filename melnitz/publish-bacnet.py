@@ -206,14 +206,14 @@ class BACnetDataLogger(Thread):
         self.app = app
 
         self.foreign_addr = config.get('BACpypes', 'foreignBBMD')
-		
+        
         # connect to local repo
         self.publisher = RepoSocketPublisher(12345)
-        self.prefix = ndn.Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ").appendVersion()
+        self.prefix = ndn.Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ/data")
         self.interval = 1.0 # in seconds
-		
+        
         self.aggregate = 60 # 60 samples per content object
-		
+        
         self.loadKey()
         
     def loadKey(self):
@@ -240,14 +240,14 @@ class BACnetDataLogger(Thread):
 
     def publish_data(self, payload, timestamp):
         co = ndn.ContentObject()
-        co.name = self.prefix.append("index").append(timestamp)
+        co.name = self.prefix.append(timestamp)
         iv = Random.new().read(AES.block_size)
         encryptor = AES.new(key, AES.MODE_CBC, iv)
         co.content = iv + encryptor.encrypt(pad(json.dumps(payload)))
         co.signedInfo = self.si
         co.sign(self.key)
         self.publisher.put(co)
-                
+        
     def do_read(self):
         try:
             # query the present value of 'MLNTZ.PNL.J.DEMAND'

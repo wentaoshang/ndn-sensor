@@ -34,7 +34,6 @@ function UnsignedIntToArrayBuffer(value) {
 var DataStat = function DataStat(prfx, range) {
     this.version = null; // uint8array for the version code
     this.prefix = prfx; // prefix for the namespace (excluding the version code)
-    this.data_prefix = null;
     this.range = range; // array of two integers [start, end], the time range within which we want to fetch the data
 			
     this.x = [];
@@ -124,28 +123,6 @@ var processData = function (co) {
     var co_name = co.name;
     //console.log(co_name.to_uri());
     
-    if (dataStat.version == null) {
-	var vpos = dataStat.prefix.components.length;
-	dataStat.version = co_name.components[vpos];
-	//console.log(dataStat.version);
-	
-	dataStat.data_prefix = new Name(dataStat.prefix).append(dataStat.version).append('index');
-	//console.log(dataStat.data_prefix.to_uri());
-	//console.log(dataStat.prefix.to_uri());
-	
-	// Send interest to get the latest content.
-	var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(dataStat.range[0])]);
-	
-	var template = new Interest();
-	template.childSelector = 0;
-	template.answerOriginKind = 0;
-	template.interestLifetime = 1000;
-	template.exclude = filter;
-	
-	ndn.expressInterest(dataStat.data_prefix, template, onData, onTimeout);
-	return;
-    }
-    
     var msg = DataUtils.toHex(co.content);
     var iv = CryptoJS.enc.Hex.parse(msg.substr(0, iv_len * 2));
     var ciphertext = CryptoJS.enc.Hex.parse(msg.substr(iv_len * 2));
@@ -175,22 +152,22 @@ var processData = function (co) {
 	var tpos = co_name.components.length - 1;
 	var ts = co_name.components[tpos];
 	//console.log(ts);
-				
+	
 	var filter = new Exclude([Exclude.ANY, ts]);
-				
+	
 	var template = new Interest();
 	template.childSelector = 0;
 	template.interestLifetime = 1000;
 	template.exclude = filter;
-				
-	ndn.expressInterest(dataStat.data_prefix, template, onData, onTimeout);
+	
+	ndn.expressInterest(dataStat.prefix, template, onData, onTimeout);
     }
 };
 
 var onTimeout = function (inst) {
     console.log("Interest time out.");
     console.log("Interest name is " + inst.name.to_uri());
-            
+    
     if (dataStat.sample_num > 0) {
 	// Display what we have up to now
 	display_data();
@@ -213,8 +190,15 @@ function get_data_since(ago) {
     template.answerOriginKind = 0;
     template.interestLifetime = 1000;
     
-    var name = new Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ");
+    var name = new Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ/data");
     dataStat = new DataStat(name, range);
+
+    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[0])]);
+    
+    var template = new Interest();
+    template.childSelector = 0;
+    template.interestLifetime = 1000;
+    template.exclude = filter;
     
     ndn.expressInterest(name, template, onData, onTimeout);
 }
