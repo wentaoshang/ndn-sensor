@@ -33,6 +33,7 @@ import binascii
 from Crypto.Cipher import AES
 from Crypto import Random
 
+import thread
 from threading import Thread
 
 import time
@@ -113,6 +114,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
         BIPSimpleApplication.request(self, apdu)
 
     def confirmation(self, apdu):
+        #print thread.get_ident()
         global sample_count, data_cache, packet_ts
         
         if _debug: BACnetAggregator._debug("confirmation %r", apdu)
@@ -231,13 +233,18 @@ class BACnetDataLogger(Thread):
         #self.publisher.put(key_co)
         
     def run(self):
+        print "Logger thread started..."
+
         # wait for the BACnet service to start
         time.sleep(1.0)
+
+        print "Make initial BACnet reqeust to the device"
 
         # make the initial request to kick off the 'sleep&read' loop
         self.do_read()
 
         # and exit...
+        print "Logger thread terminate"
 
     def publish_data(self, payload, timestamp):
         co = pyccn.ContentObject()
@@ -306,13 +313,23 @@ try:
     
     _log.debug("running")
 
+    #print thread.get_ident()
+
+    print "In main thread: start logger thread..."
+
     # start logger thread
     bac_app.logger.start()
+
+    print "In main thread: enter BACnet service loop..."
 
     # start bacnet service
     run()
 
+    print "In main thread: wait for logger thread to exit..."
+
     bac_app.logger.join()
+
+    print "In main thread: logger.join() returned"
 
 
 except Exception, e:
