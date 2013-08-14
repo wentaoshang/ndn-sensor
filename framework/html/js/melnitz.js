@@ -1,8 +1,8 @@
 var CpsMelnitzPolicy = new IdentityPolicy(
     // anchors
     [
-{ key_name: new Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ/keys/%C1.M.K%00i%23%91q%BC%05lH%16%B6%3B%B1%85%D7%F7%A9%ED%2C%E4%93%8D+k%C6%FEb%A2%60%F3%AA%C8%24"), 
-  namespace: new Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ"),
+{ key_name: new Name("/ndn/ucla.edu/apps/melnitz/%C1.M.K%00i%23%91q%BC%05lH%16%B6%3B%B1%85%D7%F7%A9%ED%2C%E4%93%8D+k%C6%FEb%A2%60%F3%AA%C8%24"), 
+  namespace: new Name("/ndn/ucla.edu/apps/melnitz/data"),
   key: Key.createFromPEM({ pub: "-----BEGIN PUBLIC KEY-----\n" + 
 			   "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC4kgAG4nqPeR9ITU/joBTUI+NJ\n" +
 			   "WRfh0dwjHmN3GH1/oysHtxJMiYS/6twztRJtwrxcLgaXYQ97Ii30PZe9tkAx+BNa\n" +
@@ -35,7 +35,7 @@ var DataStat = function DataStat(prfx, range) {
     this.version = null; // uint8array for the version code
     this.prefix = prfx; // prefix for the namespace (excluding the version code)
     this.range = range; // array of two integers [start, end], the time range within which we want to fetch the data
-			
+    
     this.x = [];
     this.ts = [];
     this.y1 = [];
@@ -190,7 +190,7 @@ function get_data_since(ago) {
     template.answerOriginKind = 0;
     template.interestLifetime = 1000;
     
-    var name = new Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ/data");
+    var name = new Name("/ndn/ucla.edu/apps/melnitz/data/TV1/PanelJ/power");
     dataStat = new DataStat(name, range);
 
     var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[0])]);

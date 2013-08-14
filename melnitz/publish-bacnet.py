@@ -26,7 +26,8 @@ from bacpypes.basetypes import ServicesSupported
 from bacpypes.errors import DecodingError
 
 import os, random, socket
-import ndn
+import pyccn
+from pyccn import _pyccn
 
 import binascii
 from Crypto.Cipher import AES
@@ -64,7 +65,7 @@ class RepoSocketPublisher:
         self.sock.connect(self.repo_dest)
 
     def put(self, content):
-        self.sock.send(content.get_ccnb())
+        self.sock.send(_pyccn.dump_charbuf(content.ccn_data))
 
 class BACnetAggregator(BIPSimpleApplication, Logging):
 
@@ -209,7 +210,7 @@ class BACnetDataLogger(Thread):
         
         # connect to local repo
         self.publisher = RepoSocketPublisher(12345)
-        self.prefix = ndn.Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ/data")
+        self.prefix = pyccn.Name("/ndn/ucla.edu/apps/melnitz/data/TV1/PanelJ/power")
         self.interval = 1.0 # in seconds
         
         self.aggregate = 60 # 60 samples per content object
@@ -217,10 +218,10 @@ class BACnetDataLogger(Thread):
         self.loadKey()
         
     def loadKey(self):
-        self.key = ndn.Key()
+        self.key = pyccn.Key()
         self.key.fromPEM(filename = key_file)
-        self.key_name = ndn.Name("/ndn/ucla.edu/apps/cps/sec/melnitz/TV1/PanelJ").append("keys").appendKeyID(self.key)
-        self.si = ndn.SignedInfo(self.key.publicKeyID, ndn.KeyLocator(self.key_name))
+        self.key_name = pyccn.Name("/ndn/ucla.edu/apps/melnitz/").appendKeyID(self.key)
+        self.si = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.key_name))
         
         #key_co = pyccn.ContentObject()
         #key_co.name = self.key_name
@@ -239,7 +240,7 @@ class BACnetDataLogger(Thread):
         # and exit...
 
     def publish_data(self, payload, timestamp):
-        co = ndn.ContentObject()
+        co = pyccn.ContentObject()
         co.name = self.prefix.append(timestamp)
         iv = Random.new().read(AES.block_size)
         encryptor = AES.new(key, AES.MODE_CBC, iv)
