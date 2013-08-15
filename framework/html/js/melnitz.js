@@ -1,14 +1,14 @@
 var CpsMelnitzPolicy = new IdentityPolicy(
     // anchors
     [
-{ key_name: new Name("/ndn/ucla.edu/apps/melnitz/%C1.M.K%00i%23%91q%BC%05lH%16%B6%3B%B1%85%D7%F7%A9%ED%2C%E4%93%8D+k%C6%FEb%A2%60%F3%AA%C8%24"), 
-  namespace: new Name("/ndn/ucla.edu/apps/melnitz/data"),
-  key: Key.createFromPEM({ pub: "-----BEGIN PUBLIC KEY-----\n" + 
-			   "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC4kgAG4nqPeR9ITU/joBTUI+NJ\n" +
-			   "WRfh0dwjHmN3GH1/oysHtxJMiYS/6twztRJtwrxcLgaXYQ97Ii30PZe9tkAx+BNa\n" +
-			   "k2c7TACiO8mEB1pk9pJ9pGYzHnZC2DJoaq3Hoh1icfEybg883Q48qAplsLxrC4np\n" +
-			   "SNsGJqfk4o7iSDDkmQIDAQAB\n" +
-			   "-----END PUBLIC KEY-----" }) }
+{ key_name: new Name("/ndn/ucla.edu/bms/melnitz/data/%C1.M.K%00%F7%18%CCiJ%25%02%07%05%9E%E0%B6%E3%FEB%F1S%20%23%89%DD%2A%19%C1%83w%A6%86%B6%F8%DA%DB"), 
+  namespace: new Name("/ndn/ucla.edu/bms/melnitz/data"),
+  key: Key.createFromPEM({ pub: '-----BEGIN PUBLIC KEY-----\n' + 
+			   'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1CTT1cCgPA4r1Olk9N6yNdUES\n' +
+			   'Tn7NuPqtvf70rt/k/S88Zr4s+jvekYykRaIg18BFRwSHy3XrvPKJFMs0FVL26uST\n' +
+			   'H6CZt/TM/fSNTjDqvzZ0LyN1eSPhFka2N1HLto4MHjfViKWTradR26zFgwaulqjw\n' +
+			   '7nbxMl3wSLD9fKeEsQIDAQAB\n' +
+			   '-----END PUBLIC KEY-----\n' }) }
 	],
     // rules
     []
@@ -108,7 +108,7 @@ var display_data = function () {
 var onData = function (inst, co) {
     CpsMelnitzPolicy.verify(ndn, co, function (result) {
 	if (result == VerifyResult.SUCCESS) {
-	    processData(co);
+	    fetchDecryptionKey(co);
 	} else if (result == VerifyResult.FAILURE)
 	    console.log('Verification failed.');
 	else if (result == VerifyResult.TIMEOUT)
@@ -116,16 +116,30 @@ var onData = function (inst, co) {
     });
 };
 
-var key = CryptoJS.enc.Hex.parse('389ad5f8fc26f076e0ba200c9b42f669d07066032df8a33b88d49c1763f80783');
+//var key = CryptoJS.enc.Hex.parse('389ad5f8fc26f076e0ba200c9b42f669d07066032df8a33b88d49c1763f80783');
 var iv_len = 16;
 
-var processData = function (co) {
+var fetchDecryptionKey = function (data_co) {
+    var onKeyData = function (inst, key_co) {
+	var ciphertext = DataUtils.toHex(key_co.content);
+	var rsa = new RSAKey();
+	rsa.readPrivateKeyFromPEMString(ndn.getDefaultKey().privateToPEM());
+	var sym_key = rsa.decrypt(ciphertext);
+	console.log(sym_key);
+	processData(data_co, sym_key);
+    };
+
+    ndn.expressInterest(new Name('/ndn/ucla.edu/bms/melnitz/kds/sym_key'), null, onKeyData);
+};
+
+var processData = function (co, sym_key) {
     var co_name = co.name;
     //console.log(co_name.to_uri());
     
     var msg = DataUtils.toHex(co.content);
     var iv = CryptoJS.enc.Hex.parse(msg.substr(0, iv_len * 2));
     var ciphertext = CryptoJS.enc.Hex.parse(msg.substr(iv_len * 2));
+    var key = CryptoJS.enc.Hex.parse(sym_key);
     var aesDecryptor = CryptoJS.algo.AES.createDecryptor(key, { iv: iv });
     var p1 = aesDecryptor.process(ciphertext);
     var p2 = aesDecryptor.finalize();
@@ -165,8 +179,7 @@ var processData = function (co) {
 };
 
 var onTimeout = function (inst) {
-    console.log("Interest time out.");
-    console.log("Interest name is " + inst.name.to_uri());
+    console.log("Interest timeout: " + inst.name.to_uri());
     
     if (dataStat.sample_num > 0) {
 	// Display what we have up to now
@@ -190,7 +203,7 @@ function get_data_since(ago) {
     template.answerOriginKind = 0;
     template.interestLifetime = 1000;
     
-    var name = new Name("/ndn/ucla.edu/apps/melnitz/data/TV1/PanelJ/power");
+    var name = new Name("/ndn/ucla.edu/bms/melnitz/data/TV1/PanelJ/power");
     dataStat = new DataStat(name, range);
 
     var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[0])]);

@@ -50,7 +50,7 @@ key = binascii.unhexlify('389ad5f8fc26f076e0ba200c9b42f669d07066032df8a33b88d49c
 _debug = 0
 _log = ModuleLogger(globals())
 
-key_file = "tv1.pem"
+key_file = "../keychain/keys/data_root.pem"
 
 sample_count = 1
 data_cache = []
@@ -212,7 +212,7 @@ class BACnetDataLogger(Thread):
         
         # connect to local repo
         self.publisher = RepoSocketPublisher(12345)
-        self.prefix = pyccn.Name("/ndn/ucla.edu/apps/melnitz/data/TV1/PanelJ/power")
+        self.prefix = pyccn.Name("/ndn/ucla.edu/bms/melnitz/data/TV1/PanelJ/power")
         self.interval = 1.0 # in seconds
         
         self.aggregate = 60 # 60 samples per content object
@@ -222,7 +222,8 @@ class BACnetDataLogger(Thread):
     def loadKey(self):
         self.key = pyccn.Key()
         self.key.fromPEM(filename = key_file)
-        self.key_name = pyccn.Name("/ndn/ucla.edu/apps/melnitz/").appendKeyID(self.key)
+        self.key_name = pyccn.Name("/ndn/ucla.edu/bms/melnitz/data").appendKeyID(self.key)
+        print 'Use key name ' + str(self.key_name) + ' to sign data'
         self.si = pyccn.SignedInfo(self.key.publicKeyID, pyccn.KeyLocator(self.key_name))
         
         #key_co = pyccn.ContentObject()

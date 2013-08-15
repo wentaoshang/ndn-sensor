@@ -110,7 +110,7 @@ IdentityPolicy.prototype.verify = function (handle, data, callback) {
 
 IdentityPolicy.prototype.authorize_by_anchors = function (/*Name*/ dataName, /*Name*/ keyName) {
     for (var i = 0; i < this.anchors.length; i++) {
-	if (keyName.to_uri() == this.anchors[i].key_name.to_uri()) {
+	if (keyName.equals(this.anchors[i].key_name)) {
 	    var nsp = this.anchors[i].namespace;
 	    if (nsp.isPrefixOf(dataName))
 		return this.anchors[i].key;
