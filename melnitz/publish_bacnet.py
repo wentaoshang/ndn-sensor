@@ -40,6 +40,8 @@ import time
 import json
 import struct
 
+import kds
+
 BS = 16
 pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
 unpad = lambda s : s[0:-ord(s[-1])]
@@ -53,8 +55,10 @@ _log = ModuleLogger(globals())
 key_file = "../keychain/keys/data_root.pem"
 
 sample_count = 1
+kds_count = 1
 data_cache = []
 packet_ts = 0
+time_s = struct.pack("!Q", 0)
 
 bac_app = None
 
@@ -115,7 +119,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
 
     def confirmation(self, apdu):
         #print thread.get_ident()
-        global sample_count, data_cache, packet_ts
+        global sample_count, data_cache, packet_ts, kds_count, key, time_s
         
         if _debug: BACnetAggregator._debug("confirmation %r", apdu)
 
@@ -165,7 +169,18 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
                 packet_ts = 0
             
             sample_count = sample_count + 1
+            #change
+            if kds_count % 120 == 0:
+                time_t = int(time.time()*1000)
+                time_s = struct.pack("!Q", time_t)
+                
+                key = Random.new().read(32)
+                kds_thread = kds.KDSPublisher(key, time_s)
+                kds_thread.start()
+                kds_count = 0
 
+            kds_count = kds_count+1
+            #
             #
             # We could move the 'sleep&read' looping into logger thread so
             # that we could parallel read and write processes. For now we
@@ -252,7 +267,7 @@ class BACnetDataLogger(Thread):
         co.name = self.prefix.append(timestamp)
         iv = Random.new().read(AES.block_size)
         encryptor = AES.new(key, AES.MODE_CBC, iv)
-        co.content = iv + encryptor.encrypt(pad(json.dumps(payload)))
+        co.content = time_s + iv + encryptor.encrypt(pad(json.dumps(payload)))
         co.signedInfo = self.si
         co.sign(self.key)
         self.publisher.put(co)
