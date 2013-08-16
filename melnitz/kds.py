@@ -11,6 +11,8 @@ import binascii
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
 
+import re
+
 handler = pyccn.CCN()
 
 interest_tmpl = pyccn.Interest(scope = 1)
@@ -38,9 +40,45 @@ class VerificationClosure(pyccn.Closure):
         self.index = 0
         self.timestamp = timestamp
         self.publisher = RepoSocketPublisher(12345)
-        self.anchors = [{'name':'/ndn/ucla.edu/bms/%C1.M.K%00%03a%27%95_%7C%1F%CD%C0E%2B54%00%87%AC%84r%DBg%83%07%5D%F9%03%02p%DB%A9%B8%06%B4', 'pubkey': \
-                             '0\x81\x9f0\r\x06\t*\x86H\x86\xf7\r\x01\x01\x01\x05\x00\x03\x81\x8d\x000\x81\x89\x02\x81\x81\x00\xd8\xe8\xa76\xbe|\x99\x1f\x0eO\x8e\xbel\xc1\xed\xfd-p\x8b>\xb1\x0f-\x1b\xf7z#j\xba\x9c\x0c\xa0\x9bh\x08\xfbg\xab\x89\xc7\xb5\xc5\xdb\xde\x90H\xee(F\x17\x86\xaf\xd6O\x12`\x00\xd2)n\x95\x14IV\x1e\xa6\xf4+\xa4\xed1z\x801\x1d\x7f\xbe\xcf3\xd3\xbc\xa7\x83\xda\xe6\x13~\x1e\xc3\xb6\x86\xae\xc96\x16\x8e":c\xa4eg\x11\x85\xa2\xff\xae\xa1\xe4\xc6s28W3\'S.\x87\xc5\x94\'\xf7\x90\xa9\x888c\x02\x03\x01\x00\x01'}]
+        self.anchors = [{'name':'/ndn/ucla.edu/bms/melnitz/%C1.M.K%00%B1%D2%02V%08%FB%AE%2Bf%3B%D6%E3%83%DDr%CE%9A%98%9F-%BB%BCH%20l%A7hGgni%3E','namespace': '/ndn/ucla.edu/bms/melnitz', 'pubkey': \
+                             '0\x81\x9f0\r\x06\t*\x86H\x86\xf7\r\x01\x01\x01\x05\x00\x03\x81\x8d\x000\x81\x89\x02\x81\x81\x00\xa0\x11\xc4\x86\xe8\x83\x1e\xa6\x19M\xa3\x07z\xfd\x8d\xab\xe6\xd1<l\xba\xa9\xf1@\xb8\x8d\xbc\x80p\xbf\xe0\xf2cQJ:\xb9\xbaca\xa0\x0cU0.\x99\xedS\xdc\x0f\xcd\x00\x92\xd0\x96\x01\xac~L\xf4\xa92\xe9\xceL\xce\x17\x8b\xf0q\xc7Y\xa1\xd3\x13\xc1\x81\xaf\x12/\xed$,Sy\xf7\xb7\x06"w[\xc9\xd7\x969E\xa3,\x13\xa3\xc0B\x1a\xb5\x11\xb9\xdc\xa0\xbbl\xf9q\xb9Is\xd7m,A\xd4r]9f\xb3\xaf\xf2\t\x02\x03\x01\x00\x01'}]
+        self.rules = [# rule for 'data' sub-namespace
+	{'key_pat': re.compile("^(/ndn/ucla.edu/bms/melnitz/data)/%C1.M.K[^/]+$"),'key_pat_ext':0, 'data_pat': re.compile("^(/ndn/ucla.edu/bms/melnitz/data(?:/[^/]+)*)$"), 'data_pat_ext':0 },
+
+	# rule for 'kds' sub-namespace
+	{ 'key_pat': re.compile("^(/ndn/ucla.edu/bms/melnitz/kds)/%C1.M.K[^/]+$"), 'key_pat_ext':0, 'data_pat': re.compile("^(/ndn/ucla.edu/bms/melnitz/kds(?:/[^/]+)*)$"), 'data_pat_ext': 0 },
+
+	#rule for 'users' sub-namespace
+	{ 'key_pat': re.compile("^(/ndn/ucla.edu/bms/melnitz/users)/%C1.M.K[^/]+$"), 'key_pat_ext': 0, 'data_pat': re.compile("^(/ndn/ucla.edu/bms/melnitz/users(?:/[^/]+)*)$"), 'data_pat_ext': 0 }]
         self.stack = []
+
+    def authorize_by_anchor (self, data_name, key_name):
+        # _LOG.debug ("== authorize_by_anchor == data: [%s], key: [%s]" % (data_name, key_name))
+
+        for anchor in self.anchors:
+            if key_name == anchor['name']:
+                namespace_key = anchor['namespace']
+                if namespace_key[:] == data_name[0:len (namespace_key)]:
+                    return anchor['pubkey']
+            
+        return None
+
+    def authorize_by_rule (self, data_name, key_name): 
+        for rule in self.rules:
+            matches_key = rule['key_pat'].match(key_name)
+            if matches_key != None:
+                matches_data = rule['data_pat'].match(data_name)
+            
+                if matches_data != None:
+                    namespace_key_t = rule['key_pat'].findall(key_name)
+                    namespace_key = namespace_key_t[rule['key_pat_ext']]
+                    namespace_data_t =  rule['data_pat'].findall(data_name)
+                    namespace_data = namespace_data_t[rule['data_pat_ext']]
+                
+                    if len (namespace_key) == 0 or namespace_key[:] == namespace_data[:len (namespace_key)]:
+                        return True
+        return False
+
 
     def upcall(self, kind, upcallInfo):
         global flag_terminate
@@ -48,10 +86,10 @@ class VerificationClosure(pyccn.Closure):
             co = upcallInfo.ContentObject
             
             keylocator =str(co.signedInfo.keyLocator.keyName)
-            
-            if keylocator == self.anchors[0]['name']:
+            anchor_pubkey = self.authorize_by_anchor(str(co.name),keylocator)
+            if anchor_pubkey !=None:
                 root_key = pyccn.Key()
-                root_key.fromDER(public = self.anchors[0]['pubkey'])
+                root_key.fromDER(public = anchor_pubkey)
                 flag = co.verify_signature(root_key)
                 while flag == True and len(self.stack)>0:
                     key = pyccn.Key()
@@ -86,14 +124,21 @@ class VerificationClosure(pyccn.Closure):
                         flag_terminate = 1
                         #print flag_terminate
 
-            else:
+            elif self.authorize_by_rule(str(co.name),keylocator)==True:
                 self.stack.append(co)
                 handler.expressInterest(pyccn.Name(keylocator),self,interest_tmpl)
+            else:
+                print "verification failed"
+                flag_terminate = 1
                 
         elif kind == pyccn.UPCALL_INTEREST_TIMED_OUT:
             return pyccn.RESULT_REEXPRESS
 
         return pyccn.RESULT_OK
+
+    
+    
+    
 
 class KDSPublisher(Thread):
     def  __init__(self, key, timestamp):
@@ -117,5 +162,7 @@ class KDSPublisher(Thread):
         flag_terminate = 0
             
       
-                    
+
+
+       
                 
