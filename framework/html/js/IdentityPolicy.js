@@ -25,6 +25,8 @@ TIMEOUT: 3  // Timeout when fetching the key chain
  *  The prototype for this callback is function (result) {}, where 'result' is a flag indicating the verification result.
  */
 IdentityPolicy.prototype.verify = function (handle, data, callback) {
+    //console.log('Verify data ' + data.name + ' signed by ' + data.signedInfo.locator.keyName.name.to_uri());
+
     if (this.anchors.length == 0)
 	return false;
     
@@ -122,15 +124,17 @@ IdentityPolicy.prototype.authorize_by_anchors = function (/*Name*/ dataName, /*N
 IdentityPolicy.prototype.authorize_by_rules = function (/*Name*/ dataName, /*Name*/ keyName) {
     var data_name = dataName.to_uri();
     var key_name = keyName.to_uri();
+    //console.log(data_name);
+    //console.log(key_name);
 
     for (var i = 0; i < this.rules.length; i++) {
 	var rule = this.rules[i];
 	if (rule.key_pat.test(key_name) && rule.data_pat.test(data_name)) {
 	    var namespace_key = new Name(key_name.replace(rule.key_pat, rule.key_pat_ext));
 	    var namespace_data = new Name(data_name.replace(rule.data_pat, rule.data_pat_ext));
+	    //console.log('namespace_key: ' + namespace_key.to_uri());
+	    //console.log('namespace_data: ' + namespace_data.to_uri());
 	    if (namespace_key.isPrefixOf(namespace_data)) {
-		//console.log('namespace_key: ' + namespace_key.to_uri());
-		//console.log('namespace_data: ' + namespace_data.to_uri());
 		return true;
 	    }
 	}

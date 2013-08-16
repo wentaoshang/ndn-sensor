@@ -96,10 +96,10 @@ class VerificationClosure(pyccn.Closure):
         return pyccn.RESULT_OK
 
 class KDSPublisher(Thread):
-    def  __init__(self, key, time_s):
+    def  __init__(self, key, timestamp):
         Thread.__init__(self)
-        self.key = key
-        self.timestamp = time_s
+        self.key = binascii.hexlify(key)
+        self.timestamp = timestamp
 
     def run(self):
         global flag_terminate

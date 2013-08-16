@@ -1,18 +1,36 @@
 var CpsMelnitzPolicy = new IdentityPolicy(
     // anchors
     [
-{ key_name: new Name("/ndn/ucla.edu/bms/melnitz/data/%C1.M.K%00%F7%18%CCiJ%25%02%07%05%9E%E0%B6%E3%FEB%F1S%20%23%89%DD%2A%19%C1%83w%A6%86%B6%F8%DA%DB"), 
-  namespace: new Name("/ndn/ucla.edu/bms/melnitz/data"),
-  key: Key.createFromPEM({ pub: '-----BEGIN PUBLIC KEY-----\n' + 
-			   'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1CTT1cCgPA4r1Olk9N6yNdUES\n' +
-			   'Tn7NuPqtvf70rt/k/S88Zr4s+jvekYykRaIg18BFRwSHy3XrvPKJFMs0FVL26uST\n' +
-			   'H6CZt/TM/fSNTjDqvzZ0LyN1eSPhFka2N1HLto4MHjfViKWTradR26zFgwaulqjw\n' +
-			   '7nbxMl3wSLD9fKeEsQIDAQAB\n' +
-			   '-----END PUBLIC KEY-----\n' }) }
-	],
+	{ key_name: new Name("/ndn/ucla.edu/bms/melnitz/%C1.M.K%00%B1%D2%02V%08%FB%AE%2Bf%3B%D6%E3%83%DDr%CE%9A%98%9F-%BB%BCH%20l%A7hGgni%3E"), 
+	  namespace: new Name("/ndn/ucla.edu/bms/melnitz"),
+	  key: Key.createFromPEM({ pub: '-----BEGIN PUBLIC KEY-----\n' +
+				   'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCgEcSG6IMephlNowd6/Y2r5tE8\n' +
+				   'bLqp8UC4jbyAcL/g8mNRSjq5umNhoAxVMC6Z7VPcD80AktCWAax+TPSpMunOTM4X\n' +
+				   'i/Bxx1mh0xPBga8SL+0kLFN597cGIndbydeWOUWjLBOjwEIatRG53KC7bPlxuUlz\n' + 
+				   '120sQdRyXTlms6/yCQIDAQAB\n' + 
+				   '-----END PUBLIC KEY-----' }) }
+    ],
     // rules
-    []
-	);
+    [
+	// rule for 'data' sub-namespace
+	{ key_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/data)/%C1.M.K[^/]+$"), 
+	  key_pat_ext: "$1", 
+	  data_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/data(?:/[^/]+)*)$"), 
+	  data_pat_ext: "$1" },
+
+	// rule for 'kds' sub-namespace
+	{ key_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/kds)/%C1.M.K[^/]+$"), 
+	  key_pat_ext: "$1", 
+	  data_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/kds(?:/[^/]+)*)$"), 
+	  data_pat_ext: "$1" },
+
+	// rule for 'users' sub-namespace
+	{ key_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/users)/%C1.M.K[^/]+$"), 
+	  key_pat_ext: "$1", 
+	  data_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/users(?:/[^/]+)*)$"), 
+	  data_pat_ext: "$1" }
+    ]
+);
 
 function UnsignedIntToArrayBuffer(value) {
     if (value <= 0)
@@ -110,33 +128,46 @@ var onData = function (inst, co) {
 	if (result == VerifyResult.SUCCESS) {
 	    fetchDecryptionKey(co);
 	} else if (result == VerifyResult.FAILURE)
-	    console.log('Verification failed.');
+	    console.log('Data verification failed.');
 	else if (result == VerifyResult.TIMEOUT)
-	    console.log('Verification failed due to timeout.');
+	    console.log('Data verification failed due to timeout.');
     });
 };
 
 //var key = CryptoJS.enc.Hex.parse('389ad5f8fc26f076e0ba200c9b42f669d07066032df8a33b88d49c1763f80783');
 var iv_len = 16;
+var key_ts_len = 8;
 
 var fetchDecryptionKey = function (data_co) {
+    var key_ts = data_co.content.subarray(0, key_ts_len);
+    
     var onKeyData = function (inst, key_co) {
-	var ciphertext = DataUtils.toHex(key_co.content);
-	var rsa = new RSAKey();
-	rsa.readPrivateKeyFromPEMString(ndn.getDefaultKey().privateToPEM());
-	var sym_key = rsa.decrypt(ciphertext);
-	console.log(sym_key);
-	processData(data_co, sym_key);
+	 CpsMelnitzPolicy.verify(ndn, key_co, function (result) {
+	     if (result == VerifyResult.SUCCESS) {
+		 var ciphertext = DataUtils.toHex(key_co.content);
+		 //console.log(ciphertext);
+		 var rsa = new RSAKey();
+		 rsa.readPrivateKeyFromPEMString(ndn.getDefaultKey().privateToPEM());
+		 var sym_key = rsa.decrypt(ciphertext);
+		 //console.log(sym_key);
+		 processData(data_co, sym_key);
+	     } else if (result == VerifyResult.FAILURE)
+		 console.log('Sym key verification failed.');
+	     else if (result == VerifyResult.TIMEOUT)
+		 console.log('Sym key verification failed due to timeout.');
+	 });
     };
 
-    ndn.expressInterest(new Name('/ndn/ucla.edu/bms/melnitz/kds/sym_key'), null, onKeyData);
+    var sym_key_name = new Name('/ndn/ucla.edu/bms/melnitz/kds').append(key_ts).appendKeyID(ndn.getDefaultKey());
+    //console.log('Fetch sym key: ' + sym_key_name.to_uri());
+    ndn.expressInterest(sym_key_name, null, onKeyData);
 };
 
 var processData = function (co, sym_key) {
     var co_name = co.name;
     //console.log(co_name.to_uri());
     
-    var msg = DataUtils.toHex(co.content);
+    var msg = DataUtils.toHex(co.content).substr(key_ts_len * 2);
     var iv = CryptoJS.enc.Hex.parse(msg.substr(0, iv_len * 2));
     var ciphertext = CryptoJS.enc.Hex.parse(msg.substr(iv_len * 2));
     var key = CryptoJS.enc.Hex.parse(sym_key);

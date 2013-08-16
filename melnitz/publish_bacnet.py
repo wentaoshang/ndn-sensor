@@ -55,7 +55,7 @@ _log = ModuleLogger(globals())
 key_file = "../keychain/keys/data_root.pem"
 
 sample_count = 1
-kds_count = 1
+kds_count = 0
 data_cache = []
 packet_ts = 0
 time_s = struct.pack("!Q", 0)
@@ -150,6 +150,19 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
             #sys.stdout.write(str(value) + '\n')
             #sys.stdout.flush()
 
+            # KDS
+            if kds_count % 120 == 0:
+                time_t = int(time.time() * 1000)
+                time_s = struct.pack("!Q", time_t)
+                
+                key = Random.new().read(32)
+                kds_thread = kds.KDSPublisher(key, time_s)
+                kds_thread.start()
+                kds_count = 0
+
+            kds_count = kds_count + 1
+            #
+
             now = int(time.time() * 1000) # in milliseconds
             if packet_ts == 0:
                 packet_ts = now
@@ -169,17 +182,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
                 packet_ts = 0
             
             sample_count = sample_count + 1
-            #change
-            if kds_count % 120 == 0:
-                time_t = int(time.time()*1000)
-                time_s = struct.pack("!Q", time_t)
-                
-                key = Random.new().read(32)
-                kds_thread = kds.KDSPublisher(key, time_s)
-                kds_thread.start()
-                kds_count = 0
 
-            kds_count = kds_count+1
             #
             #
             # We could move the 'sleep&read' looping into logger thread so
