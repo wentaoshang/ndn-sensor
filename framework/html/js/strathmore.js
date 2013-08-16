@@ -16,11 +16,9 @@ function UnsignedIntToArrayBuffer(value) {
 };
 	
 var DataStat = function DataStat(prfx, range) {
-    this.version = null; // uint8array for the version code
-    this.prefix = prfx; // prefix for the namespace (excluding the version code)
-    this.data_prefix = null;
+    this.prefix = prfx; // prefix for the data namespace
     this.range = range; // array of two integers [start, end], the time range within which we want to fetch the data
-			
+    
     this.x = [];
     this.ts = [];
     this.y1 = [];
@@ -140,42 +138,20 @@ var display_data = function () {
 var onData = function (inst, co) {
     var co_name = co.name;
     //console.log(co_name.to_uri());
-				
-    if (dataStat.version == null) {
-	var vpos = dataStat.prefix.components.length;
-	dataStat.version = co_name.components[vpos];
-	//console.log(dataStat.version);
-					
-	dataStat.data_prefix = new Name(dataStat.prefix).append(dataStat.version).append('index');
-	//console.log(dataStat.data_prefix.to_uri());
-	//console.log(dataStat.prefix.to_uri());
-					
-	// Send interest to get the latest content.
-	var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(dataStat.range[0])]);
-				
-	var template = new Interest();
-	template.childSelector = 0;
-	template.answerOriginKind = 0;
-	template.interestLifetime = 1000;
-	template.exclude = filter;
-				
-	ndn.expressInterest(dataStat.data_prefix, template, onData, onTimeout);
-	return;
-    }
-			
+    
     var json_text = DataUtils.toString(co.content);
     var json_obj = jQuery.parseJSON(json_text).data;
-			
+    
     // Record the data samples
     for (var i = 0; i < json_obj.length; i++) {
 	dataStat.x.push(i + dataStat.sample_num);
-	dataStat.ts.push(parseInt(json_obj[i].ts.substr(0, json_obj[i].ts.length - 6)));
+	dataStat.ts.push(json_obj[i].ts);
 	dataStat.y1.push(json_obj[i].vlna);
 	dataStat.y2.push(json_obj[i].la / 10);
     }
-			
+    
     dataStat.sample_num += json_obj.length;
-			
+    
     if (dataStat.sample_num >= 3600) {
 	// We have collected enough samples. Display in time series
 	display_data();
@@ -184,21 +160,20 @@ var onData = function (inst, co) {
 	var tpos = co_name.components.length - 1;
 	var ts = co_name.components[tpos];
 	//console.log(ts);
-				
+	
 	var filter = new Exclude([Exclude.ANY, ts]);
-				
+	
 	var template = new Interest();
 	template.childSelector = 0;
 	template.interestLifetime = 1000;
 	template.exclude = filter;
 				
-	ndn.expressInterest(dataStat.data_prefix, template, onData, onTimeout);
+	ndn.expressInterest(dataStat.prefix, template, onData, onTimeout);
     }
 };
 
 var onTimeout = function (inst) {
-    console.log("Interest time out.");
-    console.log("Interest name is " + inst.name.to_uri());
+    console.log("Interest timeout: " + inst.name.to_uri());
     
     if (dataStat.sample_num > 0) {
 	// Display what we have up to now
@@ -215,15 +190,16 @@ function get_data_since(ago) {
     var now = new Date();
     var range = [now - ago, now]; // time range is in milliseconds
     //console.log(range[0]);
-			
-    // Template interest to get the latest content.
-    var template = new Interest();
-    template.childSelector = 1;
-    template.answerOriginKind = 0;
-    template.interestLifetime = 1000;
-			
-    var prefix = new Name("/ndn/ucla.edu/apps/cps/strathmore/");
+    
+    var prefix = new Name("/ndn/ucla.edu/bms/strathmore/data/demand");
     dataStat = new DataStat(prefix, range);
+
+    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[0])]);
+    
+    var template = new Interest();
+    template.childSelector = 0;
+    template.interestLifetime = 1000;
+    template.exclude = filter;
 
     ndn.expressInterest(prefix, template, onData, onTimeout);
 }

@@ -50,8 +50,7 @@ function UnsignedIntToArrayBuffer(value) {
 }
 	
 var DataStat = function DataStat(prfx, range) {
-    this.version = null; // uint8array for the version code
-    this.prefix = prfx; // prefix for the namespace (excluding the version code)
+    this.prefix = prfx; // prefix for the data namespace
     this.range = range; // array of two integers [start, end], the time range within which we want to fetch the data
     
     this.x = [];
