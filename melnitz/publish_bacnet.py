@@ -39,6 +39,7 @@ from threading import Thread
 import time
 import json
 import struct
+from data_points import datapoints
 
 import kds
 
@@ -54,11 +55,12 @@ _log = ModuleLogger(globals())
 
 key_file = "../keychain/keys/data_root.pem"
 
-sample_count = 1
+#sample_count = 1
 kds_count = 0
-data_cache = []
-packet_ts = 0
+#data_cache = []
+#packet_ts = 0
 time_s = struct.pack("!Q", 0)
+point_count = 0
 
 bac_app = None
 
@@ -119,7 +121,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
 
     def confirmation(self, apdu):
         #print thread.get_ident()
-        global sample_count, data_cache, packet_ts, kds_count, key, time_s
+        global kds_count, key, time_s, point_count, datapoints
         
         if _debug: BACnetAggregator._debug("confirmation %r", apdu)
 
@@ -164,24 +166,25 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
             #
 
             now = int(time.time() * 1000) # in milliseconds
-            if packet_ts == 0:
-                packet_ts = now
+            #if packet_ts == 0:
+            #    packet_ts = now
 
             # package into JSON
-            entry = {'ts': now, 'pw': value}
-            data_cache.append(entry)
-			
-            if sample_count % self.logger.aggregate == 0:
-                payload = {'data':data_cache}
-                timestamp = struct.pack("!Q", packet_ts) # timestamp is in milliseconds
-
-                self.logger.publish_data(payload, timestamp)
+            #entry = {'ts': now, 'pw': value}
+            #data_cache.append(entry)
+            payload = {'ts': now, 'pw': value}
+            #if sample_count % self.logger.aggregate == 0:
+            #    payload = {'data':data_cache}
+            #    timestamp = struct.pack("!Q", packet_ts) # timestamp is in milliseconds
+            timestamp = struct.pack("!Q", now)
+            point_count = (point_count+1)%len(datapoints) #################
+            self.logger.publish_data(payload, timestamp)
                 
-                sample_count = 0
-                data_cache = []
-                packet_ts = 0
+            #    sample_count = 0
+            #    data_cache = []
+            #    packet_ts = 0
             
-            sample_count = sample_count + 1
+            #sample_count = sample_count + 1
 
             #
             #
@@ -190,7 +193,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
             # only work on a single thread. The logger thread simply kicks 
             # off the initial request and then exits.
             #
-            time.sleep(self.logger.interval)
+            time.sleep(0.5)
             self.logger.do_read()
 
     def indication(self, apdu):
@@ -230,7 +233,7 @@ class BACnetDataLogger(Thread):
         
         # connect to local repo
         self.publisher = RepoSocketPublisher(12345)
-        self.prefix = pyccn.Name("/ndn/ucla.edu/bms/melnitz/data/TV1/PanelJ/power")
+        #self.prefix = pyccn.Name("/ndn/ucla.edu/bms/melnitz/data/TV1/PanelJ/power")
         self.interval = 1.0 # in seconds
         
         self.aggregate = 60 # 60 samples per content object
@@ -267,20 +270,21 @@ class BACnetDataLogger(Thread):
 
     def publish_data(self, payload, timestamp):
         co = pyccn.ContentObject()
-        co.name = self.prefix.append(timestamp)
+        co.name = pyccn.Name(datapoints[point_count]['prefix']).append(timestamp)######################
         iv = Random.new().read(AES.block_size)
         encryptor = AES.new(key, AES.MODE_CBC, iv)
         co.content = time_s + iv + encryptor.encrypt(pad(json.dumps(payload)))
         co.signedInfo = self.si
         co.sign(self.key)
         self.publisher.put(co)
+        print(co.name)
         
     def do_read(self):
         try:
             # query the present value of 'MLNTZ.PNL.J.DEMAND'
-            obj_type = 'analogInput'
-            obj_inst = 0
-            prop_id = 'presentValue'
+            obj_type = datapoints[point_count]['obj_type']
+            obj_inst = datapoints[point_count]['obj_inst']
+            prop_id =  datapoints[point_count]['prop_id']
             
             if not get_object_class(obj_type):
                 raise ValueError, "unknown object type: " + obj_type
