@@ -123,6 +123,7 @@ var display_data = function () {
 };
 
 var onData = function (inst, co) {
+    //console.log(co.name.to_uri());
     CpsMelnitzPolicy.verify(ndn, co, function (result) {
 	if (result == VerifyResult.SUCCESS) {
 	    fetchDecryptionKey(co);
@@ -226,12 +227,6 @@ function get_data_since(ago) {
     var now = new Date();
     var range = [now - ago, now]; // time range is in milliseconds
     //console.log(range[0]);
-    
-    // Template interest to get the latest content.
-    var template = new Interest();
-    template.childSelector = 1;
-    template.answerOriginKind = 0;
-    template.interestLifetime = 1000;
     
     var name = new Name("/ndn/ucla.edu/bms/melnitz/data/TV1/PanelJ/power");
     dataStat = new DataStat(name, range);

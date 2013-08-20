@@ -7,7 +7,6 @@
     <!-- Load styles -->
     <link href="http://fonts.googleapis.com/css?family=Rambla:400,700|Istok+Web:400,700" rel="stylesheet" type="text/css">
     <link rel="stylesheet" type="text/css" href="css/style.css" />
-    <link rel="stylesheet" type="text/css" href="css/envision.min.css" />
   </head>
 
   <body>
@@ -19,8 +18,8 @@
 	<div id="navbar_blue">
 	  <ul>
 	    <li><a href="strathmore.html">Snapshot - Strathmore</a></li>
-	    <li><a href="melnitz.html" class="active">Snapshot - Melnitz</a></li>
-	    <li><a href="melnitz-all.html">All data - Melnitz</a></li>
+	    <li><a href="melnitz.html">Snapshot - Melnitz</a></li>
+	    <li><a href="melnitz-all.html" class="active">All data - Melnitz</a></li>
 	    <li><a href="about.html">About</a></li>
 	  </ul>
 	</div>
@@ -37,18 +36,15 @@
       
       <article>
 	<div id="summary">
-	  <div class="titles"><p>MLNTZ.PNL.J.DEMAND (in kW): </p></div>
-	  <div id="pw">
-	  </div>
-	  <hr style="color: #66FFFF;" />
-	  <div id="pw_time">
-	  </div>
+	  <table id="list">
+	    <tr>
+	      <th style="width:60%">Name</th>
+	      <th style="width:15%">Timestamp</th>
+	      <th style="width:15%">Value</th>
+	      <th style="width:10%">Unit</th>
+	    </tr>
+	  </table>
 	</div>
-	<!--
-	    <div id="meta">
-	      <div class="titles"><p>Meta Info: </p></div>
-	    </div>
-	    -->
       </article>
     </div>
     
@@ -59,13 +55,13 @@
     <!-- Load scripts at the bottom for efficiency -->
     <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
     <script src="js/ndn.min.js"></script>
-    <script src="js/envision.min.js"></script>
     <script src="js/IdentityPolicy.js"></script>
     <script src="js/crypto/enc-base64.js"></script>
     <script src="js/crypto/md5.js"></script>
     <script src="js/crypto/evpkdf.js"></script>
     <script src="js/crypto/cipher-core.js"></script>
     <script src="js/crypto/aes.js"></script>
-    <script src="js/melnitz.js"></script>
+    <script src="js/melnitz-policy.js"></script>
+    <script src="js/melnitz-all.js"></script>
   </body>
 </html>
