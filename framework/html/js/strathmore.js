@@ -40,8 +40,8 @@ var display_time = function (container) {
 
 var display_data = function () {
     $("#loader").fadeOut(50);
-    $("article").fadeIn(100);
-			
+    $("#summary").fadeIn(100);
+    
     // Draw current
     var cur = document.getElementById('current');
 			
@@ -208,8 +208,6 @@ var ndn;
 var hub = selectRandomHub();
 
 $(document).ready(function() {
-    $("#all").fadeIn(1000);
-    
     ndn = new NDN({port:9696, host:hub});
     ndn.onopen = function() { get_data_since(1800000); };
     ndn.connect();

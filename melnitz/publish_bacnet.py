@@ -177,9 +177,9 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
             #    payload = {'data':data_cache}
             #    timestamp = struct.pack("!Q", packet_ts) # timestamp is in milliseconds
             timestamp = struct.pack("!Q", now)
-            point_count = (point_count+1)%len(datapoints) #################
             self.logger.publish_data(payload, timestamp)
-                
+            point_count = (point_count + 1) % len(datapoints) #################
+
             #    sample_count = 0
             #    data_cache = []
             #    packet_ts = 0
@@ -193,7 +193,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
             # only work on a single thread. The logger thread simply kicks 
             # off the initial request and then exits.
             #
-            time.sleep(0.5)
+            time.sleep(1.0)
             self.logger.do_read()
 
     def indication(self, apdu):
@@ -277,7 +277,7 @@ class BACnetDataLogger(Thread):
         co.signedInfo = self.si
         co.sign(self.key)
         self.publisher.put(co)
-        print(co.name)
+        print str(co.name) + ' ' + binascii.hexlify(time_s) 
         
     def do_read(self):
         try:
