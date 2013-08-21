@@ -104,7 +104,7 @@ IdentityPolicy.prototype.verify = function (handle, data, callback) {
     var onTimeout = function (interest) {
 	console.log("Interest time out.");
 	console.log('Interest name: ' + interest.name.to_uri());
-	callback(VeriftResult.TIMEOUT);
+	callback(VerifyResult.TIMEOUT);
     };
 
     onData(null, data);

@@ -172,7 +172,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
             # package into JSON
             #entry = {'ts': now, 'pw': value}
             #data_cache.append(entry)
-            payload = {'ts': now, 'pw': value}
+            payload = {'ts': now, 'val': value}
             #if sample_count % self.logger.aggregate == 0:
             #    payload = {'data':data_cache}
             #    timestamp = struct.pack("!Q", packet_ts) # timestamp is in milliseconds
