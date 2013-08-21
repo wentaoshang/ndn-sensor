@@ -23,7 +23,7 @@ var data_points = [
     { name: "/ndn/ucla.edu/bms/melnitz/data/1451/electrical/panel/AH8/voltage", unit: "V", lable: "MLNTZ.PNL.AH8.VOLTS" },
     { name: "/ndn/ucla.edu/bms/melnitz/data/1451/electrical/panel/AH8/current", unit: "A", lable: "MLNTZ.PNL.AH8.AMPS" },
     // AA
-    { name: "/ndn/ucla.edu/bms/melnitz/data/1451/electrical/panel/AA/power/isntant", unit: "kW", lable: "MLNTZ.PNL.AA.DEMAND" },
+    { name: "/ndn/ucla.edu/bms/melnitz/data/1451/electrical/panel/AA/power/instant", unit: "kW", lable: "MLNTZ.PNL.AA.DEMAND" },
     { name: "/ndn/ucla.edu/bms/melnitz/data/1451/electrical/panel/AA/power/peak", unit: "kW", lable: "MLNTZ.PNL.AA.PEAK" },
     { name: "/ndn/ucla.edu/bms/melnitz/data/1451/electrical/panel/AA/voltage", unit: "V", lable: "MLNTZ.PNL.AA.VOLTS" },
     { name: "/ndn/ucla.edu/bms/melnitz/data/1451/electrical/panel/AA/current", unit: "A", lable: "MLNTZ.PNL.AA.AMPS" },
