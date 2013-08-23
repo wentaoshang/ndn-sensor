@@ -164,9 +164,10 @@ var processData = function (co, sym_key) {
 	// Send interest for the next content object
 	var tpos = co_name.components.length - 1;
 	var ts = co_name.components[tpos];
+	var ts_num = parseInt(DataUtils.toHex(ts), 16);
 	//console.log(ts);
 	
-	var filter = new Exclude([Exclude.ANY, ts]);
+	var filter = new Exclude([Exclude.ANY, ts, UnsignedIntToArrayBuffer(ts_num + 60000), Exclude.ANY]);
 	
 	var template = new Interest();
 	template.childSelector = 0;
