@@ -30,11 +30,10 @@ class RepoSocketPublisher:
         self.sock.send(_pyccn.dump_charbuf(content.ccn_data))
 
 class VerificationClosure(pyccn.Closure):
-    def __init__(self, roster, key, timestamp):
-        self.kds_key = pyccn.Key()
-        self.kds_key.fromPEM(filename = '../keychain/keys/kds_root.pem')
+    def __init__(self, roster, key, timestamp, dsk, dsk_si):
+        self.kds_key = dsk
+        self.kds_si = dsk_si
         self.prefix = pyccn.Name('/ndn/ucla.edu/bms/melnitz/kds')
-        self.kdsname = self.prefix.appendKeyID(self.kds_key)
         self.symkey = key
         self.roster = roster
         self.index = 0
@@ -42,19 +41,12 @@ class VerificationClosure(pyccn.Closure):
         self.publisher = RepoSocketPublisher(12345)
         self.anchors = [{'name':'/ndn/ucla.edu/bms/melnitz/%C1.M.K%00%B1%D2%02V%08%FB%AE%2Bf%3B%D6%E3%83%DDr%CE%9A%98%9F-%BB%BCH%20l%A7hGgni%3E','namespace': '/ndn/ucla.edu/bms/melnitz', 'pubkey': \
                              '0\x81\x9f0\r\x06\t*\x86H\x86\xf7\r\x01\x01\x01\x05\x00\x03\x81\x8d\x000\x81\x89\x02\x81\x81\x00\xa0\x11\xc4\x86\xe8\x83\x1e\xa6\x19M\xa3\x07z\xfd\x8d\xab\xe6\xd1<l\xba\xa9\xf1@\xb8\x8d\xbc\x80p\xbf\xe0\xf2cQJ:\xb9\xbaca\xa0\x0cU0.\x99\xedS\xdc\x0f\xcd\x00\x92\xd0\x96\x01\xac~L\xf4\xa92\xe9\xceL\xce\x17\x8b\xf0q\xc7Y\xa1\xd3\x13\xc1\x81\xaf\x12/\xed$,Sy\xf7\xb7\x06"w[\xc9\xd7\x969E\xa3,\x13\xa3\xc0B\x1a\xb5\x11\xb9\xdc\xa0\xbbl\xf9q\xb9Is\xd7m,A\xd4r]9f\xb3\xaf\xf2\t\x02\x03\x01\x00\x01'}]
-        self.rules = [# rule for 'data' sub-namespace
-	{'key_pat': re.compile("^(/ndn/ucla.edu/bms/melnitz/data)/%C1.M.K[^/]+$"),'key_pat_ext':0, 'data_pat': re.compile("^(/ndn/ucla.edu/bms/melnitz/data(?:/[^/]+)*)$"), 'data_pat_ext':0 },
-
-	# rule for 'kds' sub-namespace
-	{ 'key_pat': re.compile("^(/ndn/ucla.edu/bms/melnitz/kds)/%C1.M.K[^/]+$"), 'key_pat_ext':0, 'data_pat': re.compile("^(/ndn/ucla.edu/bms/melnitz/kds(?:/[^/]+)*)$"), 'data_pat_ext': 0 },
-
+        self.rules = [
 	#rule for 'users' sub-namespace
 	{ 'key_pat': re.compile("^(/ndn/ucla.edu/bms/melnitz/users)/%C1.M.K[^/]+$"), 'key_pat_ext': 0, 'data_pat': re.compile("^(/ndn/ucla.edu/bms/melnitz/users(?:/[^/]+)*)$"), 'data_pat_ext': 0 }]
         self.stack = []
 
     def authorize_by_anchor (self, data_name, key_name):
-        # _LOG.debug ("== authorize_by_anchor == data: [%s], key: [%s]" % (data_name, key_name))
-
         for anchor in self.anchors:
             if key_name == anchor['name']:
                 namespace_key = anchor['namespace']
@@ -108,7 +100,7 @@ class VerificationClosure(pyccn.Closure):
                     ciphertext = cipher.encrypt(self.symkey)
                     
                     userdataname = self.prefix.append(self.timestamp).appendKeyID(usrkey)
-                    CO = pyccn.ContentObject(name = userdataname,content = ciphertext,signed_info = pyccn.SignedInfo(self.kds_key.publicKeyID,pyccn.KeyLocator(self.kdsname)))
+                    CO = pyccn.ContentObject(name = userdataname,content = ciphertext,signed_info = self.kds_si)
                     CO.sign(self.kds_key)
 
                     self.publisher.put(CO)
@@ -141,15 +133,17 @@ class VerificationClosure(pyccn.Closure):
     
 
 class KDSPublisher(Thread):
-    def  __init__(self, key, timestamp):
+    def  __init__(self, symkey, timestamp, dsk, dsk_si):
         Thread.__init__(self)
-        self.key = binascii.hexlify(key)
+        self.symkey = binascii.hexlify(symkey)
         self.timestamp = timestamp
+        self.dsk = dsk
+        self.dsk_si = dsk_si
 
     def run(self):
         global flag_terminate
         print 'Publisher started...'
-        closure = VerificationClosure(user_list.usrlist, self.key, self.timestamp)
+        closure = VerificationClosure(user_list.usrlist, self.symkey, self.timestamp, self.dsk, self.dsk_si)
         first = pyccn.Name(user_list.usrlist[0]);
 
         handler.expressInterest(first, closure, interest_tmpl)

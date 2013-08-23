@@ -1,6 +1,7 @@
 var CpsMelnitzPolicy = new IdentityPolicy(
     // anchors
     [
+    // Melnitz KSK
 	{ key_name: new Name("/ndn/ucla.edu/bms/melnitz/%C1.M.K%00%B1%D2%02V%08%FB%AE%2Bf%3B%D6%E3%83%DDr%CE%9A%98%9F-%BB%BCH%20l%A7hGgni%3E"), 
 	  namespace: new Name("/ndn/ucla.edu/bms/melnitz"),
 	  key: Key.createFromPEM({ pub: '-----BEGIN PUBLIC KEY-----\n' +
@@ -13,13 +14,13 @@ var CpsMelnitzPolicy = new IdentityPolicy(
     // rules
     [
 	// rule for 'data' sub-namespace
-	{ key_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/data)/%C1.M.K[^/]+$"), 
+	{ key_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/data)/%FD[^/]+/%C1.M.K[^/]+$"), 
 	  key_pat_ext: "$1", 
 	  data_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/data(?:/[^/]+)*)$"), 
 	  data_pat_ext: "$1" },
 
 	// rule for 'kds' sub-namespace
-	{ key_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/kds)/%C1.M.K[^/]+$"), 
+	{ key_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/kds)/%FD[^/]+/%C1.M.K[^/]+$"), 
 	  key_pat_ext: "$1", 
 	  data_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/kds(?:/[^/]+)*)$"), 
 	  data_pat_ext: "$1" },

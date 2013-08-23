@@ -199,7 +199,7 @@ function get_data_since(ago) {
     var name = new Name(data_points[data_index].name);
     dataStat = new DataStat(name, range);
 
-    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[0])]);
+    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[0]), UnsignedIntToArrayBuffer(range[0] + 60000), Exclude.ANY]);
     
     var template = new Interest();
     template.childSelector = 0;
