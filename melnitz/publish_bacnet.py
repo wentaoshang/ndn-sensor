@@ -115,7 +115,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
         self.ksk = pyccn.Key()
         self.ksk.fromPEM(filename = key_file)
         self.ksk_name = pyccn.Name("/ndn/ucla.edu/bms/melnitz").appendKeyID(self.ksk)
-        print 'Use key name ' + str(self.ksk_name) + ' to sign data'
+        print 'Use key name ' + str(self.ksk_name) + ' as KSK'
         self.ksk_si = pyccn.SignedInfo(self.ksk.publicKeyID, pyccn.KeyLocator(self.ksk_name))
         
         self.data_dsk = pyccn.Key()
@@ -132,7 +132,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
         self.kds_dskname = pyccn.Name("/ndn/ucla.edu/bms/melnitz/kds").appendVersion().appendKeyID(self.kds_dsk)
         self.kds_si = pyccn.SignedInfo(self.kds_dsk.publicKeyID, pyccn.KeyLocator(self.kds_dskname))
         self.publish_dsk(self.kds_dsk, self.kds_dskname)
-        print 'Publish data DSK: ' + str(self.kds_dskname)
+        print 'Publish kds DSK: ' + str(self.kds_dskname)
     
     def publish_dsk(self,dsk, dsk_name):
         key_co = pyccn.ContentObject()
@@ -185,17 +185,17 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
             #sys.stdout.flush()
 
             # KDS
-            if kds_count % 120 == 0:
-                if kds_dsk_count %2 == 0:
-                    self.kds_dsk = pyccn.Key()
-                    self.kds_dsk.generateRSA(1024)
-                    self.kds_dskname = pyccn.Name("/ndn/ucla.edu/bms/melnitz/kds").appendVersion().appendKeyID(self.kds_dsk)
-                    self.kds_si = pyccn.SignedInfo(self.kds_dsk.publicKeyID, pyccn.KeyLocator(self.kds_dskname))
-                    self.publish_dsk(self.kds_dsk, self.kds_dskname)
-                    print 'Publish kds DSK: ' + str(self.kds_dskname)
-                    kds_dsk_count = 0
+            if kds_count % 1200 == 0:
+#                 if kds_dsk_count % 2 == 0:
+#                     self.kds_dsk = pyccn.Key()
+#                     self.kds_dsk.generateRSA(1024)
+#                     self.kds_dskname = pyccn.Name("/ndn/ucla.edu/bms/melnitz/kds").appendVersion().appendKeyID(self.kds_dsk)
+#                     self.kds_si = pyccn.SignedInfo(self.kds_dsk.publicKeyID, pyccn.KeyLocator(self.kds_dskname))
+#                     self.publish_dsk(self.kds_dsk, self.kds_dskname)
+#                     print 'Publish kds DSK: ' + str(self.kds_dskname)
+#                     kds_dsk_count = 0
       
-                kds_dsk_count = kds_dsk_count + 1
+#                 kds_dsk_count = kds_dsk_count + 1
                 time_t = int(time.time() * 1000)
                 time_s = struct.pack("!Q", time_t)
                 
@@ -213,18 +213,18 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
             
             timestamp = struct.pack("!Q", now)
             self.logger.publish_data(payload, timestamp)
-            if data_dsk_count %120 == 0:
-                self.data_dsk = pyccn.Key()
-                self.data_dsk.generateRSA(1024)
-                self.data_dskname = pyccn.Name("/ndn/ucla.edu/bms/melnitz/data").appendVersion().appendKeyID(self.data_dsk)
-                self.data_si = pyccn.SignedInfo(self.data_dsk.publicKeyID, pyccn.KeyLocator(self.data_dskname))
-                self.publish_dsk(self.data_dsk, self.data_dskname)
-                self.logger.key = self.data_dsk
-                self.logger.si = self.data_si
-                print 'Publish data DSK: ' + str(self.data_dskname)
-                data_dsk_count = 0
+#             if data_dsk_count % 120 == 0:
+#                 self.data_dsk = pyccn.Key()
+#                 self.data_dsk.generateRSA(1024)
+#                 self.data_dskname = pyccn.Name("/ndn/ucla.edu/bms/melnitz/data").appendVersion().appendKeyID(self.data_dsk)
+#                 self.data_si = pyccn.SignedInfo(self.data_dsk.publicKeyID, pyccn.KeyLocator(self.data_dskname))
+#                 self.publish_dsk(self.data_dsk, self.data_dskname)
+#                 self.logger.key = self.data_dsk
+#                 self.logger.si = self.data_si
+#                 print 'Publish data DSK: ' + str(self.data_dskname)
+#                 data_dsk_count = 0
       
-            data_dsk_count = data_dsk_count + 1
+#             data_dsk_count = data_dsk_count + 1
             point_count = (point_count + 1) % len(datapoints) #################
 
            
@@ -236,7 +236,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
             # only work on a single thread. The logger thread simply kicks 
             # off the initial request and then exits.
             #
-            time.sleep(1.0)
+            time.sleep(0.5)
             self.logger.do_read()
 
     def indication(self, apdu):
@@ -302,7 +302,7 @@ class BACnetDataLogger(Thread):
 
     def publish_data(self, payload, timestamp):
         co = pyccn.ContentObject()
-        co.name = pyccn.Name(datapoints[point_count]['prefix']).append(timestamp)######################
+        co.name = pyccn.Name(datapoints[point_count]['prefix']).append(timestamp)
         iv = Random.new().read(AES.block_size)
         encryptor = AES.new(key, AES.MODE_CBC, iv)
         co.content = time_s + iv + encryptor.encrypt(pad(json.dumps(payload)))

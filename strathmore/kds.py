@@ -33,7 +33,7 @@ class VerificationClosure(pyccn.Closure):
     def __init__(self, roster, key, timestamp, dsk, dsk_si):
         self.kds_key = dsk
         self.kds_si = dsk_si
-        self.prefix = pyccn.Name('/ndn/ucla.edu/bms/melnitz/kds')
+        self.prefix = pyccn.Name('/ndn/ucla.edu/bms/strathmore/kds')
         self.symkey = key
         self.roster = roster
         self.index = 0
@@ -132,11 +132,8 @@ class VerificationClosure(pyccn.Closure):
         elif kind == pyccn.UPCALL_INTEREST_TIMED_OUT:
             return pyccn.RESULT_REEXPRESS
 
-        return pyccn.RESULT_OK
+        return pyccn.RESULT_OK    
 
-    
-    
-    
 
 class KDSPublisher(Thread):
     def  __init__(self, symkey, timestamp, dsk, dsk_si):

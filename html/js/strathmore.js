@@ -136,21 +136,69 @@ var display_data = function () {
 };
 
 var onData = function (inst, co) {
+    //console.log(co.name.to_uri());
+    CpsStrathmorePolicy.verify(ndn, co, function (result) {
+	if (result == VerifyResult.SUCCESS) {
+	    fetchDecryptionKey(co);
+	} else if (result == VerifyResult.FAILURE)
+	    console.log('Data verification failed.');
+	else if (result == VerifyResult.TIMEOUT)
+	    console.log('Data verification failed due to timeout.');
+    });
+};
+
+var iv_len = 16;
+var key_ts_len = 8;
+
+var fetchDecryptionKey = function (data_co) {
+    var key_ts = data_co.content.subarray(0, key_ts_len);
+    
+    var onKeyData = function (inst, key_co) {
+	 CpsStrathmorePolicy.verify(ndn, key_co, function (result) {
+	     if (result == VerifyResult.SUCCESS) {
+		 var ciphertext = DataUtils.toHex(key_co.content);
+		 //console.log(ciphertext);
+		 var rsa = new RSAKey();
+		 rsa.readPrivateKeyFromPEMString(ndn.getDefaultKey().privateToPEM());
+		 var sym_key = rsa.decrypt(ciphertext);
+		 //console.log(sym_key);
+		 processData(data_co, sym_key);
+	     } else if (result == VerifyResult.FAILURE)
+		 console.log('Sym key verification failed.');
+	     else if (result == VerifyResult.TIMEOUT)
+		 console.log('Sym key verification failed due to timeout.');
+	 });
+    };
+
+    var sym_key_name = new Name('/ndn/ucla.edu/bms/strathmore/kds').append(key_ts).appendKeyID(ndn.getDefaultKey());
+    //console.log('Fetch sym key: ' + sym_key_name.to_uri());
+    ndn.expressInterest(sym_key_name, null, onKeyData);
+};
+
+var processData = function (co, sym_key) {
     var co_name = co.name;
     //console.log(co_name.to_uri());
     
-    var json_text = DataUtils.toString(co.content);
-    var json_obj = jQuery.parseJSON(json_text).data;
+    var msg = DataUtils.toHex(co.content).substr(key_ts_len * 2);
+    var iv = CryptoJS.enc.Hex.parse(msg.substr(0, iv_len * 2));
+    var ciphertext = CryptoJS.enc.Hex.parse(msg.substr(iv_len * 2));
+    var key = CryptoJS.enc.Hex.parse(sym_key);
+    var aesDecryptor = CryptoJS.algo.AES.createDecryptor(key, { iv: iv });
+    var p1 = aesDecryptor.process(ciphertext);
+    var p2 = aesDecryptor.finalize();
+    //console.log(p1.toString(CryptoJS.enc.Utf8));
+    //console.log(p2.toString(CryptoJS.enc.Utf8));
+    
+    var json_text = p1.toString(CryptoJS.enc.Utf8) + p2.toString(CryptoJS.enc.Utf8);
+    var json_obj = jQuery.parseJSON(json_text);
+
+    dataStat.sample_num++;
     
     // Record the data samples
-    for (var i = 0; i < json_obj.length; i++) {
-	dataStat.x.push(i + dataStat.sample_num);
-	dataStat.ts.push(json_obj[i].ts);
-	dataStat.y1.push(json_obj[i].vlna);
-	dataStat.y2.push(json_obj[i].la / 10);
-    }
-    
-    dataStat.sample_num += json_obj.length;
+    dataStat.x.push(dataStat.sample_num);
+    dataStat.ts.push(json_obj.ts);
+    dataStat.y1.push(json_obj.vlna);
+    dataStat.y2.push(json_obj.la / 10);
     
     if (dataStat.sample_num >= 3600) {
 	// We have collected enough samples. Display in time series
@@ -159,9 +207,10 @@ var onData = function (inst, co) {
 	// Send interest for the next content object
 	var tpos = co_name.components.length - 1;
 	var ts = co_name.components[tpos];
+	var ts_num = parseInt(DataUtils.toHex(ts), 16);
 	//console.log(ts);
 	
-	var filter = new Exclude([Exclude.ANY, ts]);
+	var filter = new Exclude([Exclude.ANY, ts, UnsignedIntToArrayBuffer(ts_num + 1800), Exclude.ANY]);
 	
 	var template = new Interest();
 	template.childSelector = 0;

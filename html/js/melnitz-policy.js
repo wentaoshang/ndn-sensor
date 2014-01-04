@@ -23,12 +23,6 @@ var CpsMelnitzPolicy = new IdentityPolicy(
 	{ key_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/kds)/%FD[^/]+/%C1.M.K[^/]+$"), 
 	  key_pat_ext: "$1", 
 	  data_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/kds(?:/[^/]+)*)$"), 
-	  data_pat_ext: "$1" },
-
-	// rule for 'users' sub-namespace
-	{ key_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/users)/%C1.M.K[^/]+$"), 
-	  key_pat_ext: "$1", 
-	  data_pat: new RegExp("^(/ndn/ucla.edu/bms/melnitz/users(?:/[^/]+)*)$"), 
 	  data_pat_ext: "$1" }
     ]
 );
