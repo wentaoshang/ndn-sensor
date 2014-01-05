@@ -21,7 +21,7 @@ BS = 16
 pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
 unpad = lambda s : s[0:-ord(s[-1])]
 
-keyFile = "../keychain/keys/strathmore_root.pem"
+key_file = "../keychain/keys/strathmore_root.pem"
 
 class RepoSocketPublisher(pyccn.Closure):
     def __init__(self, repo_port):
@@ -37,7 +37,7 @@ class SensorDataLogger:
     def __init__(self, data_interval):
         # connect to modbus
         self.master = modbus_tcp.TcpMaster("172.17.66.246", 502)
-        self.master.set_timeout(100.0)
+        self.master.set_timeout(1000.0)
         
         # connect to local repo
         self.publisher = RepoSocketPublisher(12345)
@@ -58,8 +58,8 @@ class SensorDataLogger:
         self.data_dskname = pyccn.Name("/ndn/ucla.edu/bms/strathmore/data").appendVersion().appendKeyID(self.data_dsk)
         self.data_si = pyccn.SignedInfo(self.data_dsk.publicKeyID, pyccn.KeyLocator(self.data_dskname), type = pyccn.CONTENT_KEY, final_block = b'\x00')
         self.publishDSK(self.data_dsk, self.data_dskname)
-        self.logger.key = self.data_dsk
-        self.logger.si = self.data_si
+        self.key = self.data_dsk
+        self.si = self.data_si
         print 'Publish data DSK: ' + str(self.data_dskname)
         
         self.kds_dsk = pyccn.Key()
@@ -75,9 +75,9 @@ class SensorDataLogger:
         key_co.content = dsk.publicToDER()
         key_co.signedInfo = self.ksk_si
         key_co.sign(self.ksk)
-        self.logger.publisher.put(key_co)
+        self.publisher.put(key_co)
 
-    def publishData(self, key_ver, payload, timestamp):
+    def publishData(self, key, key_ver, payload, timestamp):
         co = pyccn.ContentObject()
         co.name = self.prefix.append(timestamp)
         iv = Random.new().read(AES.block_size)
@@ -91,7 +91,7 @@ class SensorDataLogger:
     def run(self):
         key_ts = struct.pack('!Q', int(time.time() * 1000))
         key = Random.new().read(32)
-        kds_count = 0
+        kds_count = -1
         
         while (True):
             # KDS
@@ -99,7 +99,7 @@ class SensorDataLogger:
             if kds_count % 120 == 0:
                 key_ts = struct.pack("!Q", int(time.time() * 1000))
                 key = Random.new().read(32)
-                kds_thread = kds.KDSPublisher(key, time_s, self.kds_dsk, self.kds_si)
+                kds_thread = kds.KDSPublisher(key, key_ts, self.kds_dsk, self.kds_si)
                 kds_thread.start()
                 kds_count = 0
 
@@ -115,7 +115,7 @@ class SensorDataLogger:
             payload = {'ts': now, 'vlna': vln, 'la': la}
             timestamp = struct.pack("!Q", now) # timestamp is in milliseconds
 
-            self.publishData(key_ts, payload, timestamp)
+            self.publishData(key, key_ts, payload, timestamp)
 
             time.sleep(self.interval)
 

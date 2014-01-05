@@ -4,8 +4,7 @@ keyfile_folder = 'keys/'
 keyfiles = { \
 '/ndn/ucla.edu/bms' : 'bms_root.pem', \
 '/ndn/ucla.edu/bms/melnitz' : 'melnitz_root.pem', \
-'/ndn/ucla.edu/bms/melnitz/data' : 'data_root.pem', \
-'/ndn/ucla.edu/bms/melnitz/kds' : 'kds_root.pem', \
+'/ndn/ucla.edu/bms/strathmore' : 'strathmore_root.pem', \
 '/ndn/ucla.edu/bms/users' : 'user_root.pem', \
 '/ndn/ucla.edu/bms/users/public' : 'pub_user.pem', \
 '/ndn/ucla.edu/bms/users/qiuhan' : 'qiuhan.pem', \
@@ -17,8 +16,7 @@ keyfiles = { \
 keychain = [ \
 ('/ndn/ucla.edu/bms', '/ndn/ucla.edu/bms'), \
 ('/ndn/ucla.edu/bms/melnitz', '/ndn/ucla.edu/bms'), \
-('/ndn/ucla.edu/bms/melnitz/data', '/ndn/ucla.edu/bms/melnitz'), \
-('/ndn/ucla.edu/bms/melnitz/kds', '/ndn/ucla.edu/bms/melnitz'), \
+('/ndn/ucla.edu/bms/strathmore', '/ndn/ucla.edu/bms'), \
 ('/ndn/ucla.edu/bms/users', '/ndn/ucla.edu/bms'), \
 ('/ndn/ucla.edu/bms/users/public', '/ndn/ucla.edu/bms/users'), \
 ('/ndn/ucla.edu/bms/users/qiuhan', '/ndn/ucla.edu/bms/users'), \
