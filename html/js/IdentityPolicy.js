@@ -6,6 +6,7 @@
 var IdentityPolicy = function IdentityPolicy(anchors, rules, chain_limit) {
     this.anchors = anchors != null ? anchors : [];
     this.rules = rules != null ? rules : [];
+    this.cache = [];
     this.chain_limit = chain_limit != null ? chain_limit : 10;
 };
 
@@ -37,19 +38,25 @@ IdentityPolicy.prototype.verify = function (handle, data, callback) {
     var chain_length = 0;
 
     var verifyStack = function (/*Key*/ rootKey) {
-	var result;
+	var result = true;
 	var i;
 	var key = rootKey;
-	for (i = dataStack.length - 1; i >= 0; i--) {
+	
+	for (i = dataStack.length - 1; i > 0; i--) {
 	    var d = dataStack[i];
 	    result = d.verify(key);
 	    if (result == false)
 		break;
 	    key = new Key();
 	    key.readDerPublicKey(d.content);
+	    // Cache this key
+	    var obj = { key_name : d.name,
+			namespace : d.name.getPrefix(d.name.size() - 2),
+			key : key };
+	    self.cache.push(obj);
 	}
 	
-	if (result == true) {
+	if (result == true && dataStack[0].verify(key)) {
 	    //console.log('Signature verified for content name ' + dataStack[0].name.to_uri());
 	    callback(VerifyResult.SUCCESS);
 	} else {
@@ -71,6 +78,15 @@ IdentityPolicy.prototype.verify = function (handle, data, callback) {
 	if (loc.type == KeyLocatorType.KEYNAME) {
 	    var keyName = loc.keyName.name;
 	    //console.log('Checking key name: ' + keyName.to_uri());
+
+	    // Check cache
+	    var cacheKey = self.authorize_by_cache(co.name, keyName);
+	    if (cacheKey != null) {
+		dataStack.push(co);
+		verifyStack(cacheKey);
+		return;
+	    }
+
 	    // Check policy
 	    var anchorKey = self.authorize_by_anchors(co.name, keyName);
 	    if (anchorKey != null) {
@@ -102,12 +118,22 @@ IdentityPolicy.prototype.verify = function (handle, data, callback) {
     };
     
     var onTimeout = function (interest) {
-	console.log("Interest time out.");
-	console.log('Interest name: ' + interest.name.to_uri());
+	console.log("Interest time out: " + interest.name.to_uri());
 	callback(VerifyResult.TIMEOUT);
     };
 
     onData(null, data);
+};
+
+IdentityPolicy.prototype.authorize_by_cache = function (/*Name*/ dataName, /*Name*/ keyName) {
+    for (var i = 0; i < this.cache.length; i++) {
+	if (keyName.equals(this.cache[i].key_name)) {
+	    var nsp = this.cache[i].namespace;
+	    if (nsp.isPrefixOf(dataName))
+		return this.cache[i].key;
+	}
+    }
+    return null;
 };
 
 IdentityPolicy.prototype.authorize_by_anchors = function (/*Name*/ dataName, /*Name*/ keyName) {
