@@ -41,6 +41,10 @@ var display_time = function (container) {
 var display_data = function () {
     $("#loader").fadeOut(50);
     $("#summary").fadeIn(100);
+
+    dataStat.ts.reverse ();
+    dataStat.y1.reverse ();
+    dataStat.y2.reverse ();
     
     // Draw current
     var cur = document.getElementById('current');
@@ -199,18 +203,18 @@ var processData = function (co, sym_key) {
     dataStat.ts.push(json_obj.ts);
     dataStat.y1.push(json_obj.vlna);
     dataStat.y2.push(json_obj.la / 10);
+
+    var tpos = co_name.components.length - 1;
+    var ts = co_name.components[tpos];
+    var ts_num = parseInt(DataUtils.toHex(ts), 16);
+    //console.log(ts_num);
     
-    if (dataStat.sample_num >= 3600) {
-	// We have collected enough samples. Display in time series
-	display_data();
+    if (ts_num - 1500 < dataStat.range[0] || dataStat.sample_num >= 3600) {
+        // We have collected enough samples. Display in time series
+        display_data();
     } else {
-	// Send interest for the next content object
-	var tpos = co_name.components.length - 1;
-	var ts = co_name.components[tpos];
-	var ts_num = parseInt(DataUtils.toHex(ts), 16);
-	//console.log(ts);
-	
-	var filter = new Exclude([Exclude.ANY, ts, UnsignedIntToArrayBuffer(ts_num + 1800), Exclude.ANY]);
+	// Send interest for the next content object	
+        var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(ts_num - 2500), UnsignedIntToArrayBuffer(ts_num - 1000), Exclude.ANY]);
 	
 	var template = new Interest();
 	template.childSelector = 0;
@@ -243,7 +247,7 @@ function get_data_since(ago) {
     var prefix = new Name("/ndn/ucla.edu/bms/strathmore/data/demand");
     dataStat = new DataStat(prefix, range);
 
-    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[0])]);
+    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[1] - 1500), UnsignedIntToArrayBuffer(range[1]), Exclude.ANY]);
     
     var template = new Interest();
     template.childSelector = 0;
@@ -258,6 +262,6 @@ var hub = selectRandomHub();
 
 $(document).ready(function() {
     ndn = new NDN({port:9696, host:hub});
-    ndn.onopen = function() { get_data_since(1800000); };
+    ndn.onopen = function() { get_data_since(600000); };
     ndn.connect();
 });

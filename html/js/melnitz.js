@@ -42,6 +42,9 @@ var display_data = function () {
     $("#loader").fadeOut(50);
     $("#summary").fadeIn(100);
 
+    dataStat.ts.reverse ();
+    dataStat.y1.reverse ();
+
     var data_info = data_points[data_index];
     //console.log(data_info);
     $("#bacname").text(data_info.lable + ' (in ' + data_info.unit + '): ');
@@ -156,18 +159,18 @@ var processData = function (co, sym_key) {
     dataStat.x.push(dataStat.sample_num);
     dataStat.ts.push(json_obj.ts);
     dataStat.y1.push(json_obj.val);
+
+    var tpos = co_name.components.length - 1;
+    var ts = co_name.components[tpos];
+    var ts_num = parseInt(DataUtils.toHex(ts), 16);
+    //console.log(ts_num);
     
-    if (dataStat.sample_num >= 600) {
+    if (ts_num - 60000 < dataStat.range[0] || dataStat.sample_num >= 600) {
 	// We have collected enough samples. Display in time series
 	display_data();
     } else {
-	// Send interest for the next content object
-	var tpos = co_name.components.length - 1;
-	var ts = co_name.components[tpos];
-	var ts_num = parseInt(DataUtils.toHex(ts), 16);
-	//console.log(ts);
-	
-	var filter = new Exclude([Exclude.ANY, ts, UnsignedIntToArrayBuffer(ts_num + 60000), Exclude.ANY]);
+	// Send interest for the next content object	
+	var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(ts_num - 60000), UnsignedIntToArrayBuffer(ts_num), Exclude.ANY]);
 	
 	var template = new Interest();
 	template.childSelector = 0;
@@ -200,7 +203,7 @@ function get_data_since(ago) {
     var name = new Name(data_points[data_index].name);
     dataStat = new DataStat(name, range);
 
-    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[0]), UnsignedIntToArrayBuffer(range[0] + 60000), Exclude.ANY]);
+    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[1] - 60000), UnsignedIntToArrayBuffer(range[1]), Exclude.ANY]);
     
     var template = new Interest();
     template.childSelector = 0;
@@ -211,7 +214,7 @@ function get_data_since(ago) {
 }
 
 var ndn;
-var hub = 'localhost';
+var hub = selectRandomHub();
 var data_index = 0;
 
 
