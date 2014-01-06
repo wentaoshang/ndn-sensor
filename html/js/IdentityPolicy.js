@@ -51,9 +51,18 @@ IdentityPolicy.prototype.verify = function (handle, data, callback) {
 	    key.readDerPublicKey(d.content);
 	    // Cache this key
 	    var obj = { key_name : d.name,
+			// infer namespace from key name by removing the last two components (version and key id)
 			namespace : d.name.getPrefix(d.name.size() - 2),
 			key : key };
-	    self.cache.push(obj);
+	    var j;
+	    var exist = false;
+	    for (j = 0; j < self.cache.length; j++)
+	      {
+		if (self.cache[j].key_name.equals(d.name))
+		  exist = true;
+	      }
+	    if (exist == false)
+	      self.cache.push(obj);
 	}
 	
 	if (result == true && dataStack[0].verify(key)) {
