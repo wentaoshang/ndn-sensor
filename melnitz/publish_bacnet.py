@@ -26,10 +26,21 @@ from bacpypes.basetypes import ServicesSupported
 from bacpypes.errors import DecodingError
 
 import os, random, socket
-import pyccn
-from pyccn import _pyccn
+from pyndn import Name
+from pyndn import Data
+from pyndn import ContentType
+from pyndn import KeyLocatorType
+from pyndn import Sha256WithRsaSignature
+from pyndn.security import KeyType
+from pyndn.security import KeyChain
+from pyndn.security.identity import IdentityManager
+from pyndn.security.identity import MemoryIdentityStorage
+from pyndn.security.identity import MemoryPrivateKeyStorage
+from pyndn.security.policy import SelfVerifyPolicyManager
+from pyndn.util import Blob
 
 import binascii
+from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
 from Crypto import Random
 
@@ -39,8 +50,9 @@ from threading import Thread
 import time
 import json
 import struct
-from data_points import datapoints
+import hashlib
 
+from data_points import datapoints
 import kds
 
 BS = 16
@@ -54,25 +66,26 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 key_file = "../keychain/keys/melnitz_root.pem"
-
+point_count = 0
 kds_count = 0
 time_s = struct.pack("!Q", 0)
-point_count = 0
-
-data_dsk_count = 1
-kds_dsk_count = 1
 
 bac_app = None
 
 class RepoSocketPublisher:
     def __init__(self, repo_port):
-        self.repo_dest = ('127.0.0.1', int(repo_port))
+        self.repo_dest = ('::1', int(repo_port))
 
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
         self.sock.connect(self.repo_dest)
 
-    def put(self, content):
-        self.sock.send(_pyccn.dump_charbuf(content.ccn_data))
+    def put(self, data):
+        wire = data.wireEncode()
+        self.sock.sendall(str(bytearray(wire.toBuffer())))
+
+def getKeyID(key):
+    pub_der = key.publickey().exportKey(format="DER")
+    return bytearray(hashlib.sha256(pub_der).digest())
 
 class BACnetAggregator(BIPSimpleApplication, Logging):
 
@@ -110,38 +123,40 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
         self.loadKey()
         # keep track of requests to line up responses
         self._request = None
+
+        # connect to local repo
+        self.publisher = RepoSocketPublisher(12345)
+        self.interval = 0.5 # in seconds
     
     def loadKey(self):
-        self.ksk = pyccn.Key()
-        self.ksk.fromPEM(filename = key_file)
-        self.ksk_name = pyccn.Name("/ndn/ucla.edu/bms/melnitz").appendKeyID(self.ksk)
-        print 'Use key name ' + str(self.ksk_name) + ' as KSK'
-        self.ksk_si = pyccn.SignedInfo(self.ksk.publicKeyID, pyccn.KeyLocator(self.ksk_name))
-        
-        self.data_dsk = pyccn.Key()
-        self.data_dsk.generateRSA(1024)
-        self.data_dskname = pyccn.Name("/ndn/ucla.edu/bms/melnitz/data").appendVersion().appendKeyID(self.data_dsk)
-        self.data_si = pyccn.SignedInfo(self.data_dsk.publicKeyID, pyccn.KeyLocator(self.data_dskname))
-        self.publish_dsk(self.data_dsk, self.data_dskname)
-        self.logger.key = self.data_dsk
-        self.logger.si = self.data_si
-        print 'Publish data DSK: ' + str(self.data_dskname)
-        
-        self.kds_dsk = pyccn.Key()
-        self.kds_dsk.generateRSA(1024)
-        self.kds_dskname = pyccn.Name("/ndn/ucla.edu/bms/melnitz/kds").appendVersion().appendKeyID(self.kds_dsk)
-        self.kds_si = pyccn.SignedInfo(self.kds_dsk.publicKeyID, pyccn.KeyLocator(self.kds_dskname))
-        self.publish_dsk(self.kds_dsk, self.kds_dskname)
-        print 'Publish kds DSK: ' + str(self.kds_dskname)
-    
-    def publish_dsk(self,dsk, dsk_name):
-        key_co = pyccn.ContentObject()
-        key_co.name = dsk_name
-        key_co.content = dsk.publicToDER()
-        key_co.signedInfo = pyccn.SignedInfo(self.ksk.publicKeyID, pyccn.KeyLocator(self.ksk_name), type = pyccn.CONTENT_KEY, final_block = b'\x00')
-        key_co.sign(self.ksk)
-        self.logger.publisher.put(key_co)
-        
+        self.identityStorage = MemoryIdentityStorage()
+        self.privateKeyStorage = MemoryPrivateKeyStorage()
+        self.keychain = KeyChain(IdentityManager(self.identityStorage, self.privateKeyStorage), 
+                                 SelfVerifyPolicyManager(self.identityStorage))
+
+        f = open(key_file, "r")
+        self.key = RSA.importKey(f.read())
+        self.key_name = Name("/ndn/ucla.edu/bms/melnitz").append(getKeyID(self.key))
+        key_pub_der = bytearray(self.key.publickey().exportKey(format="DER"))
+        key_pri_der = bytearray(self.key.exportKey(format="DER"))
+        self.identityStorage.addKey(self.key_name, KeyType.RSA, Blob(key_pub_der))
+        self.privateKeyStorage.setKeyPairForKeyName(self.key_name, key_pub_der, key_pri_der)
+        self.cert_name = self.key_name.getSubName(0, self.key_name.size() - 1).append(
+            "KEY").append(self.key_name[-1]).append("ID-CERT").append("0")
+
+        print 'KeyName = ' + self.key_name.toUri()
+        print 'CertName = ' + self.cert_name.toUri()
+
+    def publishData(self, name_str, payload, timestamp):
+        data = Data(Name(name_str).append(bytearray(timestamp)))
+        iv = Random.new().read(AES.block_size)
+        encryptor = AES.new(key, AES.MODE_CBC, iv)
+        data.setContent(bytearray(time_s + iv + encryptor.encrypt(pad(json.dumps(payload)))))
+        self.keychain.sign(data, self.cert_name)
+        self.publisher.put(data)
+        #print payload
+        #print data.getName().toUri()
+
     def request(self, apdu):
         if _debug: BACnetAggregator._debug("request %r", apdu)
 
@@ -153,7 +168,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
 
     def confirmation(self, apdu):
         #print thread.get_ident()
-        global kds_count, key, time_s, point_count, datapoints, data_dsk_count, kds_dsk_count
+        global kds_count, key, time_s, point_count
         
         if _debug: BACnetAggregator._debug("confirmation %r", apdu)
 
@@ -186,48 +201,24 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
 
             # KDS
             if kds_count % 1200 == 0:
-#                 if kds_dsk_count % 2 == 0:
-#                     self.kds_dsk = pyccn.Key()
-#                     self.kds_dsk.generateRSA(1024)
-#                     self.kds_dskname = pyccn.Name("/ndn/ucla.edu/bms/melnitz/kds").appendVersion().appendKeyID(self.kds_dsk)
-#                     self.kds_si = pyccn.SignedInfo(self.kds_dsk.publicKeyID, pyccn.KeyLocator(self.kds_dskname))
-#                     self.publish_dsk(self.kds_dsk, self.kds_dskname)
-#                     print 'Publish kds DSK: ' + str(self.kds_dskname)
-#                     kds_dsk_count = 0
-      
-#                 kds_dsk_count = kds_dsk_count + 1
                 time_t = int(time.time() * 1000)
                 time_s = struct.pack("!Q", time_t)
                 
                 key = Random.new().read(32)
-                kds_thread = kds.KDSPublisher(key, time_s, self.kds_dsk, self.kds_si)
+                kds_thread = kds.KDSPublisher(self.keychain, self.cert_name, key, time_s)
                 kds_thread.start()
                 kds_count = 0
 
             kds_count = kds_count + 1
             #
-                
+            
             now = int(time.time() * 1000) # in milliseconds
             
             payload = {'ts': now, 'val': value}
             
             timestamp = struct.pack("!Q", now)
-            self.logger.publish_data(payload, timestamp)
-#             if data_dsk_count % 120 == 0:
-#                 self.data_dsk = pyccn.Key()
-#                 self.data_dsk.generateRSA(1024)
-#                 self.data_dskname = pyccn.Name("/ndn/ucla.edu/bms/melnitz/data").appendVersion().appendKeyID(self.data_dsk)
-#                 self.data_si = pyccn.SignedInfo(self.data_dsk.publicKeyID, pyccn.KeyLocator(self.data_dskname))
-#                 self.publish_dsk(self.data_dsk, self.data_dskname)
-#                 self.logger.key = self.data_dsk
-#                 self.logger.si = self.data_si
-#                 print 'Publish data DSK: ' + str(self.data_dskname)
-#                 data_dsk_count = 0
-      
-#             data_dsk_count = data_dsk_count + 1
-            point_count = (point_count + 1) % len(datapoints) #################
-
-           
+            self.publishData(datapoints[point_count]['prefix'], payload, timestamp)
+            point_count = (point_count + 1) % len(datapoints)
 
             #
             #
@@ -236,7 +227,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
             # only work on a single thread. The logger thread simply kicks 
             # off the initial request and then exits.
             #
-            time.sleep(0.5)
+            time.sleep(self.interval)
             self.logger.do_read()
 
     def indication(self, apdu):
@@ -273,19 +264,7 @@ class BACnetDataLogger(Thread):
         self.app = app
 
         self.foreign_addr = config.get('BACpypes', 'foreignBBMD')
-        
-        # connect to local repo
-        self.publisher = RepoSocketPublisher(12345)
-        #self.prefix = pyccn.Name("/ndn/ucla.edu/bms/melnitz/data/TV1/PanelJ/power")
-        self.interval = 1.0 # in seconds
-        
-        self.aggregate = 60 # 60 samples per content object
-        
-        self.key = None
-        
-        self.si = None
-        
-        
+
     def run(self):
         print "Logger thread started..."
 
@@ -299,17 +278,6 @@ class BACnetDataLogger(Thread):
 
         # and exit...
         print "Logger thread terminate"
-
-    def publish_data(self, payload, timestamp):
-        co = pyccn.ContentObject()
-        co.name = pyccn.Name(datapoints[point_count]['prefix']).append(timestamp)
-        iv = Random.new().read(AES.block_size)
-        encryptor = AES.new(key, AES.MODE_CBC, iv)
-        co.content = time_s + iv + encryptor.encrypt(pad(json.dumps(payload)))
-        co.signedInfo = self.si
-        co.sign(self.key)
-        self.publisher.put(co)
-        #print str(co.name) + ' ' + binascii.hexlify(time_s) 
         
     def do_read(self):
         try:
