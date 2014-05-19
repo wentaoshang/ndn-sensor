@@ -11,29 +11,16 @@ from pyndn.security.identity import MemoryPrivateKeyStorage
 from pyndn.security.policy import SelfVerifyPolicyManager
 from pyndn.util import Blob
 
-import hashlib
 from Crypto.PublicKey import RSA
 
-import socket
+import sys
+sys.path.append("../common/")
 
+from utils import getKeyID
+from RepoSocketPublisher import RepoSocketPublisher
 import keychain_config
 
-class RepoSocketPublisher:
-    def __init__(self, repo_port):
-        self.repo_dest = ('::1', int(repo_port))
-
-        self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-        self.sock.connect(self.repo_dest)
-
-    def put(self, data):
-        wire = data.wireEncode()
-        self.sock.sendall(str(bytearray(wire.toBuffer())))
-
 publisher = RepoSocketPublisher(12345)
-
-def getKeyID(key):
-    pub_der = key.publickey().exportKey(format="DER")
-    return bytearray(hashlib.sha256(pub_der).digest())
 
 identityStorage = MemoryIdentityStorage()
 privateKeyStorage = MemoryPrivateKeyStorage()
@@ -67,7 +54,7 @@ for pair in keychain_config.keychain:
     signee_name = Name(signee_name).append(getKeyID(signee_key))
     signer_name = Name(signer_name).append(getKeyID(signer_key))
     print signee_name.toUri()
-    print signer_name.toUri()
+    print "--> " + signer_name.toUri()
 
     key_data = Data(signee_name)
     key_data.setContent(bytearray(signee_key.publickey().exportKey(format="DER")))

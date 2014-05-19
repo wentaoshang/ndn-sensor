@@ -38,11 +38,12 @@ class RepoSocketPublisher:
         self.sock.sendall(str(bytearray(wire.toBuffer())))
 
 class Closure(object):
-    def __init__(self, keychain, cert_name, key, timestamp):
+    def __init__(self, bld_root, keychain, cert_name, key, timestamp):
         self.flag_terminate = 0
         self.keychain = keychain
         self.cert_name = cert_name
-        self.prefix = Name('/ndn/ucla.edu/bms/melnitz/kds')
+        #self.prefix = Name('/ndn/ucla.edu/bms/melnitz/kds')
+        self.prefix = bld_root.append('kds')
         self.symkey = key
         self.timestamp = timestamp
         self.publisher = RepoSocketPublisher(12345)
@@ -70,8 +71,9 @@ class Closure(object):
         self.flag_terminate = 1
 
 class KDSPublisher(Thread):
-    def  __init__(self, keychain, cert_name, symkey, timestamp):
+    def  __init__(self, bld_root, keychain, cert_name, symkey, timestamp):
         Thread.__init__(self)
+        self.bld_root = bld_root
         self.keychain = keychain
         self.cert_name = cert_name
         self.symkey = binascii.hexlify(symkey)
@@ -79,8 +81,8 @@ class KDSPublisher(Thread):
         self.face = Face("localhost")
 
     def run(self):
-        print 'KDS started...'
-        closure = Closure(self.keychain, self.cert_name, self.symkey, self.timestamp)
+        print 'KDS start'
+        closure = Closure(self.bld_root, self.keychain, self.cert_name, self.symkey, self.timestamp)
 
         self.face.expressInterest(user_name, closure.onData, closure.onTimeout)
 
@@ -100,7 +102,8 @@ if __name__ == "__main__":
     f = open(key_file, "r")
     key = RSA.importKey(f.read())
     keyid = hashlib.sha256(key.publickey().exportKey("DER")).digest()
-    key_name = Name("/ndn/ucla.edu/bms/melnitz").append(bytearray(keyid))
+    bld_root = Name("/ndn/ucla.edu/bms/melnitz")
+    key_name = bld_root.append(bytearray(keyid))
     key_pub_der = bytearray(key.publickey().exportKey(format="DER"))
     key_pri_der = bytearray(key.exportKey(format="DER"))
     identityStorage.addKey(key_name, KeyType.RSA, Blob(key_pub_der))
@@ -112,7 +115,7 @@ if __name__ == "__main__":
     time_s = struct.pack("!Q", time_t)
 
     key = Random.new().read(32)
-    kds_thread = KDSPublisher(keyChain, cert_name, key, time_s)
+    kds_thread = KDSPublisher(bld_root, keyChain, cert_name, key, time_s)
     kds_thread.start()
 
     time.sleep(5)

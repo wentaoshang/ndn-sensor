@@ -1,6 +1,16 @@
 import socket
-import pyccn
-from pyccn import _pyccn
+from pyndn import Name
+from pyndn import Data
+from pyndn import ContentType
+from pyndn import KeyLocatorType
+from pyndn import Sha256WithRsaSignature
+from pyndn.security import KeyType
+from pyndn.security import KeyChain
+from pyndn.security.identity import IdentityManager
+from pyndn.security.identity import MemoryIdentityStorage
+from pyndn.security.identity import MemoryPrivateKeyStorage
+from pyndn.security.policy import SelfVerifyPolicyManager
+from pyndn.util import Blob
 
 import time
 from threading import Thread
@@ -11,27 +21,18 @@ import modbus_tk
 import modbus_tk.defines as cst
 import modbus_tk.modbus_tcp as modbus_tcp
 
+sys.path.append("../common/")
 import kds
+from utils import *
+from RepoSocketPublisher import RepoSocketPublisher
 
 import binascii
+from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
 from Crypto import Random
 
-BS = 16
-pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
-unpad = lambda s : s[0:-ord(s[-1])]
-
 key_file = "../keychain/keys/strathmore_root.pem"
-
-class RepoSocketPublisher(pyccn.Closure):
-    def __init__(self, repo_port):
-        self.repo_dest = ('127.0.0.1', int(repo_port))
-
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect(self.repo_dest)
-
-    def put(self, content):
-        self.sock.send(_pyccn.dump_charbuf(content.ccn_data))
+bld_root = "/ndn/ucla.edu/bms/strathmore"
 
 class SensorDataLogger:
     def __init__(self, data_interval):
@@ -41,52 +42,39 @@ class SensorDataLogger:
         
         # connect to local repo
         self.publisher = RepoSocketPublisher(12345)
-        self.prefix = pyccn.Name("/ndn/ucla.edu/bms/strathmore/data/demand")
+        self.prefix = "/ndn/ucla.edu/bms/strathmore/data/demand"
         self.interval = data_interval # in seconds
         
         self.loadKey()
         
     def loadKey(self):
-        self.ksk = pyccn.Key()
-        self.ksk.fromPEM(filename = key_file)
-        self.ksk_name = pyccn.Name("/ndn/ucla.edu/bms/strathmore").appendKeyID(self.ksk)
-        print 'Use key name ' + str(self.ksk_name) + ' as KSK'
-        self.ksk_si = pyccn.SignedInfo(self.ksk.publicKeyID, pyccn.KeyLocator(self.ksk_name), type = pyccn.CONTENT_KEY, final_block = b'\x00')
-        
-        self.data_dsk = pyccn.Key()
-        self.data_dsk.generateRSA(1024)
-        self.data_dskname = pyccn.Name("/ndn/ucla.edu/bms/strathmore/data").appendVersion().appendKeyID(self.data_dsk)
-        self.data_si = pyccn.SignedInfo(self.data_dsk.publicKeyID, pyccn.KeyLocator(self.data_dskname), type = pyccn.CONTENT_KEY, final_block = b'\x00')
-        self.publishDSK(self.data_dsk, self.data_dskname)
-        self.key = self.data_dsk
-        self.si = self.data_si
-        print 'Publish data DSK: ' + str(self.data_dskname)
-        
-        self.kds_dsk = pyccn.Key()
-        self.kds_dsk.generateRSA(1024)
-        self.kds_dskname = pyccn.Name("/ndn/ucla.edu/bms/strathmore/kds").appendVersion().appendKeyID(self.kds_dsk)
-        self.kds_si = pyccn.SignedInfo(self.kds_dsk.publicKeyID, pyccn.KeyLocator(self.kds_dskname), type = pyccn.CONTENT_KEY, final_block = b'\x00')
-        self.publishDSK(self.kds_dsk, self.kds_dskname)
-        print 'Publish kds DSK: ' + str(self.kds_dskname)
-        
-    def publishDSK(self, dsk, dsk_name):
-        key_co = pyccn.ContentObject()
-        key_co.name = dsk_name
-        key_co.content = dsk.publicToDER()
-        key_co.signedInfo = self.ksk_si
-        key_co.sign(self.ksk)
-        self.publisher.put(key_co)
+        self.identityStorage = MemoryIdentityStorage()
+        self.privateKeyStorage = MemoryPrivateKeyStorage()
+        self.keychain = KeyChain(IdentityManager(self.identityStorage, self.privateKeyStorage), 
+                                 SelfVerifyPolicyManager(self.identityStorage))
 
-    def publishData(self, key, key_ver, payload, timestamp):
-        co = pyccn.ContentObject()
-        co.name = self.prefix.append(timestamp)
+        f = open(key_file, "r")
+        self.key = RSA.importKey(f.read())
+        self.key_name = Name(bld_root).append(getKeyID(self.key))
+        key_pub_der = bytearray(self.key.publickey().exportKey(format="DER"))
+        key_pri_der = bytearray(self.key.exportKey(format="DER"))
+        self.identityStorage.addKey(self.key_name, KeyType.RSA, Blob(key_pub_der))
+        self.privateKeyStorage.setKeyPairForKeyName(self.key_name, key_pub_der, key_pri_der)
+        self.cert_name = self.key_name.getSubName(0, self.key_name.size() - 1).append(
+            "KEY").append(self.key_name[-1]).append("ID-CERT").append("0")
+
+        print 'KeyName = ' + self.key_name.toUri()
+        print 'CertName = ' + self.cert_name.toUri()
+
+    def publishData(self, key, key_ts, payload, timestamp):
+        data = Data(Name(self.prefix).append(bytearray(timestamp)))
         iv = Random.new().read(AES.block_size)
         encryptor = AES.new(key, AES.MODE_CBC, iv)
-        co.content = key_ver + iv + encryptor.encrypt(pad(json.dumps(payload)))
-        #co.content = json.dumps(payload)
-        co.signedInfo = self.si
-        co.sign(self.key)
-        self.publisher.put(co)
+        data.setContent(bytearray(key_ts + iv + encryptor.encrypt(pad(json.dumps(payload)))))
+        self.keychain.sign(data, self.cert_name)
+        self.publisher.put(data)
+        #print payload
+        #print data.getName().toUri()
 
     def run(self):
         key_ts = struct.pack('!Q', int(time.time() * 1000))
@@ -99,7 +87,7 @@ class SensorDataLogger:
             if kds_count % 120 == 0:
                 key_ts = struct.pack("!Q", int(time.time() * 1000))
                 key = Random.new().read(32)
-                kds_thread = kds.KDSPublisher(key, key_ts, self.kds_dsk, self.kds_si)
+                kds_thread = kds.KDSPublisher(Name(bld_root), self.keychain, self.cert_name, key, key_ts)
                 kds_thread.start()
                 kds_count = 0
 

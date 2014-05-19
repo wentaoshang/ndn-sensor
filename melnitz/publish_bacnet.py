@@ -50,14 +50,13 @@ from threading import Thread
 import time
 import json
 import struct
-import hashlib
 
 from data_points import datapoints
-import kds
 
-BS = 16
-pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)
-unpad = lambda s : s[0:-ord(s[-1])]
+sys.path.append("../common/")
+import kds
+from utils import *
+from RepoSocketPublisher import RepoSocketPublisher
 
 key = binascii.unhexlify('389ad5f8fc26f076e0ba200c9b42f669d07066032df8a33b88d49c1763f80783')
 
@@ -66,26 +65,12 @@ _debug = 0
 _log = ModuleLogger(globals())
 
 key_file = "../keychain/keys/melnitz_root.pem"
+bld_root = "/ndn/ucla.edu/bms/melnitz"
 point_count = 0
 kds_count = 0
 time_s = struct.pack("!Q", 0)
 
 bac_app = None
-
-class RepoSocketPublisher:
-    def __init__(self, repo_port):
-        self.repo_dest = ('::1', int(repo_port))
-
-        self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-        self.sock.connect(self.repo_dest)
-
-    def put(self, data):
-        wire = data.wireEncode()
-        self.sock.sendall(str(bytearray(wire.toBuffer())))
-
-def getKeyID(key):
-    pub_der = key.publickey().exportKey(format="DER")
-    return bytearray(hashlib.sha256(pub_der).digest())
 
 class BACnetAggregator(BIPSimpleApplication, Logging):
 
@@ -136,7 +121,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
 
         f = open(key_file, "r")
         self.key = RSA.importKey(f.read())
-        self.key_name = Name("/ndn/ucla.edu/bms/melnitz").append(getKeyID(self.key))
+        self.key_name = Name(bld_root).append(getKeyID(self.key))
         key_pub_der = bytearray(self.key.publickey().exportKey(format="DER"))
         key_pri_der = bytearray(self.key.exportKey(format="DER"))
         self.identityStorage.addKey(self.key_name, KeyType.RSA, Blob(key_pub_der))
@@ -205,7 +190,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
                 time_s = struct.pack("!Q", time_t)
                 
                 key = Random.new().read(32)
-                kds_thread = kds.KDSPublisher(self.keychain, self.cert_name, key, time_s)
+                kds_thread = kds.KDSPublisher(Name(bld_root), self.keychain, self.cert_name, key, time_s)
                 kds_thread.start()
                 kds_count = 0
 
