@@ -8,7 +8,6 @@ from pyndn.security import KeyChain
 from pyndn.security.identity import IdentityManager
 from pyndn.security.identity import MemoryIdentityStorage
 from pyndn.security.identity import MemoryPrivateKeyStorage
-from pyndn.security.policy import SelfVerifyPolicyManager
 from pyndn.util import Blob
 
 from Crypto.PublicKey import RSA
@@ -24,8 +23,7 @@ publisher = RepoSocketPublisher(12345)
 
 identityStorage = MemoryIdentityStorage()
 privateKeyStorage = MemoryPrivateKeyStorage()
-keyChain = KeyChain(IdentityManager(identityStorage, privateKeyStorage), 
-                    SelfVerifyPolicyManager(identityStorage))
+keyChain = KeyChain(IdentityManager(identityStorage, privateKeyStorage))
 
 # Load keys into keychain
 for key_name in keychain_config.keyfiles:

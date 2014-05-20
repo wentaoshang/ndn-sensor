@@ -1,6 +1,6 @@
 keyfile_folder = 'keys/'
 
-# Hash table mapping key names to key file names
+# Hash table mapping identity names to key file names
 keyfiles = { \
 '/ndn/ucla.edu/bms' : 'bms_root.pem', \
 '/ndn/ucla.edu/bms/melnitz' : 'melnitz_root.pem', \

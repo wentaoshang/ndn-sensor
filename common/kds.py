@@ -9,7 +9,6 @@ from pyndn.security import KeyChain
 from pyndn.security.identity import IdentityManager
 from pyndn.security.identity import MemoryIdentityStorage
 from pyndn.security.identity import MemoryPrivateKeyStorage
-from pyndn.security.policy import SelfVerifyPolicyManager
 from pyndn.util import Blob
 
 from threading import Thread
@@ -96,8 +95,7 @@ class KDSPublisher(Thread):
 if __name__ == "__main__":
     identityStorage = MemoryIdentityStorage()
     privateKeyStorage = MemoryPrivateKeyStorage()
-    keyChain = KeyChain(IdentityManager(identityStorage, privateKeyStorage), 
-                        SelfVerifyPolicyManager(identityStorage))
+    keyChain = KeyChain(IdentityManager(identityStorage, privateKeyStorage))
     key_file = "../keychain/keys/melnitz_root.pem"
     f = open(key_file, "r")
     key = RSA.importKey(f.read())

@@ -36,7 +36,6 @@ from pyndn.security import KeyChain
 from pyndn.security.identity import IdentityManager
 from pyndn.security.identity import MemoryIdentityStorage
 from pyndn.security.identity import MemoryPrivateKeyStorage
-from pyndn.security.policy import SelfVerifyPolicyManager
 from pyndn.util import Blob
 
 import binascii
@@ -116,8 +115,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
     def loadKey(self):
         self.identityStorage = MemoryIdentityStorage()
         self.privateKeyStorage = MemoryPrivateKeyStorage()
-        self.keychain = KeyChain(IdentityManager(self.identityStorage, self.privateKeyStorage), 
-                                 SelfVerifyPolicyManager(self.identityStorage))
+        self.keychain = KeyChain(IdentityManager(self.identityStorage, self.privateKeyStorage))
 
         f = open(key_file, "r")
         self.key = RSA.importKey(f.read())
