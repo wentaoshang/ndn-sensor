@@ -16,8 +16,6 @@ import struct
 import time
 import hashlib
 
-import socket
-
 import binascii
 from Crypto.Cipher import PKCS1_v1_5
 from Crypto.PublicKey import RSA
@@ -25,16 +23,7 @@ from Crypto import Random
 
 user_name = Name('/ndn/ucla.edu/bms/users/public')
 
-class RepoSocketPublisher:
-    def __init__(self, repo_port):
-        self.repo_dest = ('::1', int(repo_port))
-
-        self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-        self.sock.connect(self.repo_dest)
-
-    def put(self, data):
-        wire = data.wireEncode()
-        self.sock.sendall(str(bytearray(wire.toBuffer())))
+from RepoSocketPublisher import RepoSocketPublisher
 
 class Closure(object):
     def __init__(self, bld_root, keychain, cert_name, key, timestamp):
