@@ -207,7 +207,7 @@ var processData = function (data, sym_key) {
   
   var tpos = data_name.components.length - 1;
   var ts = data_name.components[tpos];
-  var ts_num = parseInt(DataUtils.toHex(ts), 16);
+  var ts_num = parseInt(DataUtils.toHex(ts.value), 16);
   //console.log(ts_num);
   
   if (ts_num - 1500 < dataStat.range[0] || dataStat.sample_num >= 3600) {
@@ -221,6 +221,7 @@ var processData = function (data, sym_key) {
     template.childSelector = 0;
     template.interestLifetime = 1000;
     template.exclude = filter;
+    template.setMustBeFresh(false);
     
     face.expressInterest(dataStat.prefix, template, onData, onTimeout);
   }
@@ -234,7 +235,7 @@ var onTimeout = function (inst) {
     display_data();
   } else {
     $("#loader").hide();
-    $('#error').append("<p>Currently I'm connected to " + hub + ". Refresh me to try another hub.</p>");
+    $('#error').append("<p>Currently I'm connected to " + hub + ".</p>");
     $("#error").fadeIn(100);
   }
 };
@@ -259,8 +260,7 @@ function get_data_since (ago) {
 }
 
 var face;
-var hub = "localhost";
-//var hub = selectRandomHub();
+var hub = "borges.metwi.ucla.edu";
 
 $(document).ready(function () {
     face = new Face({port:9696, host:hub});

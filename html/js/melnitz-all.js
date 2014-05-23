@@ -48,7 +48,7 @@ function get_all_data () {
   draw_table();
 
   var now = new Date();
-  var start = now - 60000; // in milliseconds
+  var start = now - 180000; // in milliseconds
   console.log('Fetch data starting from ' + new Date(start) + ' (0x' + start.toString(16) + ')');
   
   var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(start)]);
@@ -172,11 +172,11 @@ function get_all_data () {
 }
 
 var face;
-var hub = 'localhost';
+var hub = 'borges.metwi.ucla.edu';
 
 $(document).ready(function () {
     face = new Face({port:9696, host:hub});
     // Hack!
-    face.expressInterest(new Name("/"), function (inst, data) {}, function (inst) {});
-    setTimeout(function () { get_all_data(); }, 1000);
+    face.expressInterest(new Name("/ndn/ucla.edu/bms"), 
+			 function (inst, data) { get_all_data(); }, function (inst) {});
 });

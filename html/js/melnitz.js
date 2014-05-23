@@ -134,7 +134,7 @@ var fetchDecryptionKey = function (data) {
   };
   
   var sym_key_name = new Name('/ndn/ucla.edu/bms/melnitz/kds').append(key_ts).append(usrKeyID);
-  console.log('Fetch sym key: ' + sym_key_name.toUri());
+  //console.log('Fetch sym key: ' + sym_key_name.toUri());
   face.expressInterest(sym_key_name, onKeyData, null);
 };
 
@@ -153,7 +153,7 @@ var processData = function (data, sym_key) {
   
   var json_text = p1.toString(CryptoJS.enc.Utf8) + p2.toString(CryptoJS.enc.Utf8);
   var json_obj = jQuery.parseJSON(json_text);
-  console.log(json_text);
+  //console.log(json_text);
   dataStat.sample_num++;
 
   // Record the data samples
@@ -163,20 +163,21 @@ var processData = function (data, sym_key) {
 
   var tpos = data_name.components.length - 1;
   var ts = data_name.components[tpos];
-  var ts_num = parseInt(DataUtils.toHex(ts), 16);
-  //console.log(ts_num);
+  var ts_num = parseInt(DataUtils.toHex(ts.value), 16);
+  //console.log(new Date(ts_num));
   
-  if (ts_num - 60000 < dataStat.range[0] || dataStat.sample_num >= 600) {
+  if (ts_num < dataStat.range[0] || dataStat.sample_num >= 600) {
     // We have collected enough samples. Display in time series
     display_data();
   } else {
     // Send interest for the next content object	
-    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(ts_num - 60000), UnsignedIntToArrayBuffer(ts_num), Exclude.ANY]);
+    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(ts - 60000), ts, Exclude.ANY]);
     
     var template = new Interest();
-    template.childSelector = 0;
+    template.childSelector = 1;
     template.interestLifetime = 1000;
     template.exclude = filter;
+    template.setMustBeFresh(false);
     
     face.expressInterest(dataStat.prefix, template, onData, onTimeout);
   }
@@ -187,10 +188,11 @@ var onTimeout = function (inst) {
   
   if (dataStat.sample_num > 0) {
     // Display what we have up to now
+      console.log(dataStat.sample_num);
     display_data();
   } else {
     $("#loader").hide();
-    $('#error').append("<p>Currently I'm connected to " + hub + ". Refresh me to try another hub.</p>");
+    $('#error').append("<p>Currently I'm connected to " + hub + ".</p>");
     $("#error").fadeIn(100);
   }
 };
@@ -200,14 +202,15 @@ function get_data_since (ago) {
   var now = new Date();
   var range = [now - ago, now]; // time range is in milliseconds
   //console.log(range[0]);
+  console.log("Getting data since " + new Date(range[0]));
   
   var name = new Name(data_points[data_index].name);
   dataStat = new DataStat(name, range);
 
-  var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[1] - 60000), UnsignedIntToArrayBuffer(range[1]), Exclude.ANY]);
+  var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[1] - 180000)]);
   
   var template = new Interest();
-  template.childSelector = 0;
+  template.childSelector = 1;
   template.interestLifetime = 1000;
   template.exclude = filter;
   
@@ -215,8 +218,7 @@ function get_data_since (ago) {
 }
 
 var face;
-var hub = "localhost";
-//var hub = selectRandomHub();
+var hub = "borges.metwi.ucla.edu";
 var data_index = 0;
 
 $(document).ready(function () {

@@ -138,7 +138,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
         self.keychain.sign(data, self.cert_name)
         self.publisher.put(data)
         #print payload
-        #print data.getName().toUri()
+        print 'Publish ' + data.getName().toUri()
 
     def request(self, apdu):
         if _debug: BACnetAggregator._debug("request %r", apdu)
