@@ -48,7 +48,7 @@ function get_all_data () {
   draw_table();
 
   var now = new Date();
-  var start = now - 180000; // in milliseconds
+  var start = now - 60000; // in milliseconds
   console.log('Fetch data starting from ' + new Date(start) + ' (0x' + start.toString(16) + ')');
   
   var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(start)]);
@@ -57,7 +57,7 @@ function get_all_data () {
   template.childSelector = 0;
   //template.minSuffixComponent = 1;
   //template.maxSuffixComponent = 2;
-  template.interestLifetime = 1000;
+  template.interestLifetime = 4000;
   template.exclude = filter;
   
   for (var i = 0; i < data_points.length; i++)
@@ -178,5 +178,8 @@ $(document).ready(function () {
     face = new Face({port:9696, host:hub});
     // Hack!
     face.expressInterest(new Name("/ndn/ucla.edu/bms"), 
-			 function (inst, data) { get_all_data(); }, function (inst) {});
+			 function (inst, data) {
+			     get_all_data(); 
+			 },
+			 function (inst) {});
 });
