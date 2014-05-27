@@ -20,6 +20,7 @@ import modbus_tk
 import modbus_tk.defines as cst
 import modbus_tk.modbus_tcp as modbus_tcp
 
+import sys
 sys.path.append("../common/")
 import kds
 from utils import *
@@ -37,7 +38,7 @@ class SensorDataLogger:
     def __init__(self, data_interval):
         # connect to modbus
         self.master = modbus_tcp.TcpMaster("172.17.66.246", 502)
-        self.master.set_timeout(1000.0)
+        self.master.set_timeout(10000.0)
         
         # connect to local repo
         self.publisher = RepoSocketPublisher(12345)
@@ -72,7 +73,7 @@ class SensorDataLogger:
         self.keychain.sign(data, self.cert_name)
         self.publisher.put(data)
         #print payload
-        #print data.getName().toUri()
+        print data.getName().toUri()
 
     def run(self):
         key_ts = struct.pack('!Q', int(time.time() * 1000))
@@ -106,5 +107,5 @@ class SensorDataLogger:
             time.sleep(self.interval)
 
 if __name__ == "__main__":
-    logger = SensorDataLogger(data_interval = 1.0)
+    logger = SensorDataLogger(data_interval = 5.0)
     logger.run()

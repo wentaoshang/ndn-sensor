@@ -156,11 +156,6 @@ var processData = function (data, sym_key) {
   //console.log(json_text);
   dataStat.sample_num++;
 
-  // Record the data samples
-  dataStat.x.push(dataStat.sample_num);
-  dataStat.ts.push(json_obj.ts);
-  dataStat.y1.push(json_obj.val);
-
   var tpos = data_name.components.length - 1;
   var ts = data_name.components[tpos];
   var ts_num = parseInt(DataUtils.toHex(ts.value), 16);
@@ -170,14 +165,19 @@ var processData = function (data, sym_key) {
     // We have collected enough samples. Display in time series
     display_data();
   } else {
-    // Send interest for the next content object	
-    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(ts - 60000), ts, Exclude.ANY]);
+    // Record the data samples
+    dataStat.x.push(dataStat.sample_num);
+    dataStat.ts.push(json_obj.ts);
+    dataStat.y1.push(json_obj.val);
+
+    // Send interest for the next content object
+    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(ts - 300000), ts, Exclude.ANY]);
     
     var template = new Interest();
     template.childSelector = 1;
-    template.interestLifetime = 1000;
+    template.interestLifetime = 4000;
     template.exclude = filter;
-    template.setMustBeFresh(false);
+    //template.setMustBeFresh(false); //XXX: cannot receive data when setting this flag. A bug?
     
     face.expressInterest(dataStat.prefix, template, onData, onTimeout);
   }
@@ -211,7 +211,7 @@ function get_data_since (ago) {
   
   var template = new Interest();
   template.childSelector = 1;
-  template.interestLifetime = 1000;
+  template.interestLifetime = 4000;
   template.exclude = filter;
   
   face.expressInterest(name, template, onData, onTimeout);

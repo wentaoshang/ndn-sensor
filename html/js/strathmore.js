@@ -177,12 +177,12 @@ var fetchDecryptionKey = function (data) {
   
   var sym_key_name = new Name('/ndn/ucla.edu/bms/strathmore/kds').append(key_ts).append(usrKeyID);
   //console.log('Fetch sym key: ' + sym_key_name.to_uri());
-  ndn.expressInterest(sym_key_name, onKeyData, null);
+  face.expressInterest(sym_key_name, onKeyData, null);
 };
 
 var processData = function (data, sym_key) {
   var data_name = data.name;
-  //console.log(data_name.toUri());
+  console.log("Process data " + data_name.toUri());
   
   var msg = DataUtils.toHex(data.content).substr(key_ts_len * 2);
   var iv = CryptoJS.enc.Hex.parse(msg.substr(0, iv_len * 2));
@@ -196,32 +196,32 @@ var processData = function (data, sym_key) {
   
   var json_text = p1.toString(CryptoJS.enc.Utf8) + p2.toString(CryptoJS.enc.Utf8);
   var json_obj = jQuery.parseJSON(json_text);
-  console.log(json_text);
+  //console.log(json_text);
   dataStat.sample_num++;
-  
-  // Record the data samples
-  dataStat.x.push(dataStat.sample_num);
-  dataStat.ts.push(json_obj.ts);
-  dataStat.y1.push(json_obj.vlna);
-  dataStat.y2.push(json_obj.la / 10);
-  
+    
   var tpos = data_name.components.length - 1;
   var ts = data_name.components[tpos];
   var ts_num = parseInt(DataUtils.toHex(ts.value), 16);
   //console.log(ts_num);
   
-  if (ts_num - 1500 < dataStat.range[0] || dataStat.sample_num >= 3600) {
+  if (ts_num < dataStat.range[0] || dataStat.sample_num >= 3600) {
     // We have collected enough samples. Display in time series
     display_data();
   } else {
+    // Record the data samples
+    dataStat.x.push(dataStat.sample_num);
+    dataStat.ts.push(json_obj.ts);
+    dataStat.y1.push(json_obj.vlna);
+    dataStat.y2.push(json_obj.la / 10);
+
     // Send interest for the next content object	
-    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(ts_num - 2500), UnsignedIntToArrayBuffer(ts_num - 1000), Exclude.ANY]);
+    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(ts_num - 10000), ts, Exclude.ANY]);
     
     var template = new Interest();
     template.childSelector = 0;
-    template.interestLifetime = 1000;
+    template.interestLifetime = 4000;
     template.exclude = filter;
-    template.setMustBeFresh(false);
+    //template.setMustBeFresh(false);
     
     face.expressInterest(dataStat.prefix, template, onData, onTimeout);
   }
@@ -245,16 +245,17 @@ function get_data_since (ago) {
   var now = new Date();
   var range = [now - ago, now]; // time range is in milliseconds
   //console.log(range[0]);
+  console.log("Getting data since " + new Date(range[0]));
   
   var prefix = new Name("/ndn/ucla.edu/bms/strathmore/data/demand");
   dataStat = new DataStat(prefix, range);
 
-  var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[1] - 1500), UnsignedIntToArrayBuffer(range[1]), Exclude.ANY]);
+  var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[1] - 10000)]);
   
   var template = new Interest();
-  template.childSelector = 0;
-  template.interestLifetime = 1000;
-  template.exclude = filter;
+  template.childSelector = 1;
+  template.interestLifetime = 4000;
+  //template.exclude = filter;
   
   face.expressInterest(prefix, template, onData, onTimeout);
 }

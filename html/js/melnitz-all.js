@@ -48,7 +48,7 @@ function get_all_data () {
   draw_table();
 
   var now = new Date();
-  var start = now - 120000; // in milliseconds
+  var start = now - 600000; // in milliseconds
   console.log('Fetch data starting from ' + new Date(start) + ' (0x' + start.toString(16) + ')');
   
   var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(start)]);
@@ -108,7 +108,7 @@ function get_all_data () {
 
 	  var json_text = p1.toString(CryptoJS.enc.Utf8) + p2.toString(CryptoJS.enc.Utf8);
 	  var json_obj = jQuery.parseJSON(json_text);
-	  console.log(json_text);
+	  //console.log(json_text);
 	  display_data(json_obj);
 
 	  if (index < data_points.length - 1)
@@ -159,7 +159,7 @@ function get_all_data () {
 
 	var onData = function (inst, data) {
 	  //console.log('Inerest name: ' + inst.name.toUri())
-	  console.log('Received data: ' + data.name.toUri());
+	  //console.log('Received data: ' + data.name.toUri());
 	  //CpsMelnitzPolicy.verify(ndn, co, function (result) {
 	  //	if (result == VerifyResult.SUCCESS) {
 	  fetchDecryptionKey(data);
