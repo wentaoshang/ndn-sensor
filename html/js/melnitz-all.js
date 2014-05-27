@@ -48,7 +48,7 @@ function get_all_data () {
   draw_table();
 
   var now = new Date();
-  var start = now - 60000; // in milliseconds
+  var start = now - 120000; // in milliseconds
   console.log('Fetch data starting from ' + new Date(start) + ' (0x' + start.toString(16) + ')');
   
   var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(start)]);
@@ -60,10 +60,10 @@ function get_all_data () {
   template.interestLifetime = 4000;
   template.exclude = filter;
   
-  for (var i = 0; i < data_points.length; i++)
-    {
-      (function () {
-	var index = i;
+  //for (var i = 0; i < data_points.length; i++)
+  //  {
+  var recursion = function (index) {
+        //var index = i;
 	var name = data_points[index].name;
 	var bacnet_name = data_points[index].lable;
 	var prefix = new Name(name);
@@ -110,6 +110,12 @@ function get_all_data () {
 	  var json_obj = jQuery.parseJSON(json_text);
 	  console.log(json_text);
 	  display_data(json_obj);
+
+	  if (index < data_points.length - 1)
+	    {
+              console.log('Fetch data: ' + name);
+              recursion(index + 1);
+            }
 	};
 
 	var fetchDecryptionKey = function (data) {
@@ -145,10 +151,10 @@ function get_all_data () {
 	  var sym_key_name = new Name('/ndn/ucla.edu/bms/melnitz/kds').append(key_ts).append(usrKeyID);
 
 	  var template = new Interest();
-	  template.interestLifetime = 8000;
+	  template.interestLifetime = 4000;
 
-	  console.log('Fetch sym key: ' + sym_key_name.toUri());
-	  face.expressInterest(sym_key_name, onKeyData, onKeyTimeout);
+	  //console.log('Fetch sym key: ' + sym_key_name.toUri());
+	  face.expressInterest(sym_key_name, onKeyData, null);
 	};
 
 	var onData = function (inst, data) {
@@ -167,19 +173,22 @@ function get_all_data () {
 	console.log('Fetch data: ' + name);
 
 	face.expressInterest(prefix, template, onData, onTimeout);
-      }) ();
-    }
+  }; 
+
+  recursion(0);
+    // }
 }
 
 var face;
 var hub = 'borges.metwi.ucla.edu';
 
 $(document).ready(function () {
-    face = new Face({port:9696, host:hub});
-    // Hack!
-    face.expressInterest(new Name("/ndn/ucla.edu/bms"), 
-			 function (inst, data) {
-			     get_all_data(); 
-			 },
-			 function (inst) {});
+  face = new Face({port:9696, host:hub});
+  // Hack!
+  // face.expressInterest(new Name("/ndn/ucla.edu/bms"), 
+  //   			 function (inst, data) {
+  // 			     get_all_data(); 
+  // 			 },
+  // 			 function (inst) {});
+  get_all_data();
 });
