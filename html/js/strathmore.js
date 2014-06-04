@@ -265,5 +265,5 @@ var hub = "borges.metwi.ucla.edu";
 
 $(document).ready(function () {
     face = new Face({port:9696, host:hub});
-    get_data_since(600000);
+    get_data_since(300000);
 });

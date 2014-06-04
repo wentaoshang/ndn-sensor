@@ -38,7 +38,7 @@ class SensorDataLogger:
     def __init__(self, data_interval):
         # connect to modbus
         self.master = modbus_tcp.TcpMaster("172.17.66.246", 502)
-        self.master.set_timeout(10000.0)
+        # self.master.set_timeout(120) # in seconds
         
         # connect to local repo
         self.publisher = RepoSocketPublisher(12345)
@@ -86,7 +86,7 @@ class SensorDataLogger:
             if kds_count % 120 == 0:
                 key_ts = struct.pack("!Q", int(time.time() * 1000))
                 key = Random.new().read(32)
-                kds_thread = kds.KDSPublisher(Name(bld_root), self.keychain, self.cert_name, key, key_ts)
+                kds_thread = kds.SimpleKDSPublisher(Name(bld_root), self.keychain, self.cert_name, key, key_ts)
                 kds_thread.start()
                 kds_count = 0
 

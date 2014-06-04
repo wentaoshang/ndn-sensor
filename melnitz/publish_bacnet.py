@@ -188,7 +188,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
                 time_s = struct.pack("!Q", time_t)
                 
                 key = Random.new().read(32)
-                kds_thread = kds.KDSPublisher(Name(bld_root), self.keychain, self.cert_name, key, time_s)
+                kds_thread = kds.SimpleKDSPublisher(Name(bld_root), self.keychain, self.cert_name, key, time_s)
                 kds_thread.start()
                 kds_count = 0
 

@@ -22,6 +22,7 @@ from Crypto.PublicKey import RSA
 from Crypto import Random
 
 user_name = Name('/ndn/ucla.edu/bms/users/public')
+key_file = '../keychain/keys/pub_user.pem'
 
 from RepoSocketPublisher import RepoSocketPublisher
 
@@ -79,6 +80,37 @@ class KDSPublisher(Thread):
             time.sleep(0.01)
 
         print 'KDS stop'
+
+
+class SimpleKDSPublisher(Thread):
+    def  __init__(self, bld_root, keychain, cert_name, symkey, timestamp):
+        Thread.__init__(self)
+        self.bld_root = bld_root
+        self.prefix = bld_root.append('kds')
+        self.keychain = keychain
+        self.cert_name = cert_name
+        self.symkey = binascii.hexlify(symkey)
+        self.timestamp = timestamp
+        f = open(key_file, "r")
+        self.usr_key = RSA.importKey(f.read())
+        self.publisher = RepoSocketPublisher(12345)
+
+    def run(self):
+        print 'Simple KDS start'
+        # Publish sym key
+        keyid = hashlib.sha256(self.usr_key.publickey().exportKey("DER")).digest()
+        cipher = PKCS1_v1_5.new(self.usr_key)
+        ciphertext = cipher.encrypt(self.symkey)
+        
+        symkey_name = self.prefix.append(bytearray(self.timestamp)).append(bytearray(keyid))
+        symkey_data = Data(symkey_name)
+        symkey_data.setContent(bytearray(ciphertext))
+        self.keychain.sign(symkey_data, self.cert_name)
+
+        self.publisher.put(symkey_data)
+        print symkey_data.getName().toUri()
+        print 'Simple KDS stop'
+
 
 # Only for testing
 if __name__ == "__main__":
