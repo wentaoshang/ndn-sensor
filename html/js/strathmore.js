@@ -218,10 +218,10 @@ var processData = function (data, sym_key) {
     var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(ts_num - 10000), ts, Exclude.ANY]);
     
     var template = new Interest();
-    template.childSelector = 0;
+    template.childSelector = 1;
     template.interestLifetime = 1000;
     template.exclude = filter;
-    //template.setMustBeFresh(false);
+    template.setMustBeFresh(false);
     
     face.expressInterest(dataStat.prefix, template, onData, onTimeout);
   }
@@ -250,7 +250,7 @@ function get_data_since (ago) {
   var prefix = new Name("/ndn/ucla.edu/bms/strathmore/data/demand");
   dataStat = new DataStat(prefix, range);
 
-  var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[1] - 10000)]);
+  //var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[1] - 10000)]);
   
   var template = new Interest();
   template.childSelector = 1;

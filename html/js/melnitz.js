@@ -177,7 +177,7 @@ var processData = function (data, sym_key) {
     template.childSelector = 1;
     template.interestLifetime = 1000;
     template.exclude = filter;
-    //template.setMustBeFresh(false); //XXX: cannot receive data when setting this flag. A bug?
+    template.setMustBeFresh(false);
     
     face.expressInterest(dataStat.prefix, template, onData, onTimeout);
   }
@@ -206,12 +206,12 @@ function get_data_since (ago) {
   var name = new Name(data_points[data_index].name);
   dataStat = new DataStat(name, range);
 
-  var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[1] - 180000)]);
+  //var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[1] - 180000)]);
   
   var template = new Interest();
   template.childSelector = 1;
   template.interestLifetime = 1000;
-  template.exclude = filter;
+  //template.exclude = filter;
   
   face.expressInterest(name, template, onData, onTimeout);
 }
