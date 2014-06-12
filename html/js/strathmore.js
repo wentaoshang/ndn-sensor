@@ -219,7 +219,7 @@ var processData = function (data, sym_key) {
     
     var template = new Interest();
     template.childSelector = 0;
-    template.interestLifetime = 4000;
+    template.interestLifetime = 1000;
     template.exclude = filter;
     //template.setMustBeFresh(false);
     
@@ -254,7 +254,7 @@ function get_data_since (ago) {
   
   var template = new Interest();
   template.childSelector = 1;
-  template.interestLifetime = 4000;
+  template.interestLifetime = 1000;
   //template.exclude = filter;
   
   face.expressInterest(prefix, template, onData, onTimeout);

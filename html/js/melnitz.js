@@ -175,7 +175,7 @@ var processData = function (data, sym_key) {
     
     var template = new Interest();
     template.childSelector = 1;
-    template.interestLifetime = 4000;
+    template.interestLifetime = 1000;
     template.exclude = filter;
     //template.setMustBeFresh(false); //XXX: cannot receive data when setting this flag. A bug?
     
@@ -188,7 +188,6 @@ var onTimeout = function (inst) {
   
   if (dataStat.sample_num > 0) {
     // Display what we have up to now
-      console.log(dataStat.sample_num);
     display_data();
   } else {
     $("#loader").hide();
@@ -211,7 +210,7 @@ function get_data_since (ago) {
   
   var template = new Interest();
   template.childSelector = 1;
-  template.interestLifetime = 4000;
+  template.interestLifetime = 1000;
   template.exclude = filter;
   
   face.expressInterest(name, template, onData, onTimeout);
@@ -231,5 +230,5 @@ $(document).ready(function () {
 	//console.log(data_index);
       }
     face = new Face({port:9696, host:hub});
-    get_data_since(1800000);
+    get_data_since(300000);
 });

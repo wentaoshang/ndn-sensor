@@ -70,10 +70,11 @@ class SensorDataLogger:
         iv = Random.new().read(AES.block_size)
         encryptor = AES.new(key, AES.MODE_CBC, iv)
         data.setContent(bytearray(key_ts + iv + encryptor.encrypt(pad(json.dumps(payload)))))
+        data.getMetaInfo().setFreshnessPeriod(5000)
         self.keychain.sign(data, self.cert_name)
         self.publisher.put(data)
         #print payload
-        print data.getName().toUri()
+        #print data.getName().toUri()
 
     def run(self):
         key_ts = struct.pack('!Q', int(time.time() * 1000))
@@ -107,5 +108,5 @@ class SensorDataLogger:
             time.sleep(self.interval)
 
 if __name__ == "__main__":
-    logger = SensorDataLogger(data_interval = 5.0)
+    logger = SensorDataLogger(data_interval = 3.0)
     logger.run()

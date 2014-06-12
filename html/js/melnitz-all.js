@@ -47,18 +47,10 @@ function get_all_data () {
 
   draw_table();
 
-  var now = new Date();
-  var start = now - 600000; // in milliseconds
-  console.log('Fetch data starting from ' + new Date(start) + ' (0x' + start.toString(16) + ')');
-  
-  var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(start)]);
-  
   var template = new Interest();
-  template.childSelector = 0;
-  //template.minSuffixComponent = 1;
-  //template.maxSuffixComponent = 2;
-  template.interestLifetime = 4000;
-  template.exclude = filter;
+  template.childSelector = 1;
+  template.interestLifetime = 1000;
+  //template.setMustBeFresh(false);
   
   //for (var i = 0; i < data_points.length; i++)
   //  {
@@ -151,7 +143,7 @@ function get_all_data () {
 	  var sym_key_name = new Name('/ndn/ucla.edu/bms/melnitz/kds').append(key_ts).append(usrKeyID);
 
 	  var template = new Interest();
-	  template.interestLifetime = 4000;
+	  template.interestLifetime = 1000;
 
 	  //console.log('Fetch sym key: ' + sym_key_name.toUri());
 	  face.expressInterest(sym_key_name, onKeyData, null);

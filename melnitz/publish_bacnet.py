@@ -135,6 +135,7 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
         iv = Random.new().read(AES.block_size)
         encryptor = AES.new(key, AES.MODE_CBC, iv)
         data.setContent(bytearray(time_s + iv + encryptor.encrypt(pad(json.dumps(payload)))))
+        data.getMetaInfo().setFreshnessPeriod(10000)
         self.keychain.sign(data, self.cert_name)
         self.publisher.put(data)
         #print payload
@@ -210,7 +211,9 @@ class BACnetAggregator(BIPSimpleApplication, Logging):
             # only work on a single thread. The logger thread simply kicks 
             # off the initial request and then exits.
             #
-            time.sleep(self.interval)
+            if point_count == 0:
+                time.sleep(self.interval)
+
             self.logger.do_read()
 
     def indication(self, apdu):
