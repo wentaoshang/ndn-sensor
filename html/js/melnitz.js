@@ -16,9 +16,10 @@ function UnsignedIntToArrayBuffer (value) {
   return result;
 }
 
-var DataStat = function DataStat (prfx, range) {
+var DataStat = function DataStat (prfx, duration) {
   this.prefix = prfx; // prefix for the data namespace
-  this.range = range; // array of two integers [start, end], the time range within which we want to fetch the data
+  this.duration = duration; // time span of the data to be fetched
+  this.range = null; // array of two integers [start, end], the time range within which we want to fetch the data
   
   this.x = [];
   this.ts = [];
@@ -117,6 +118,7 @@ var fetchDecryptionKey = function (data) {
   var key_ts = data.content.subarray(0, key_ts_len);
   
   var onKeyData = function (inst, key_data) {
+    //console.log("Decryption key name: " + key_data.name.toUri());
     //CpsMelnitzPolicy.verify(face, key_data, function (result) {
     //if (result == VerifyResult.SUCCESS) {
     var ciphertext = DataUtils.toHex(key_data.content);
@@ -134,8 +136,12 @@ var fetchDecryptionKey = function (data) {
   };
   
   var sym_key_name = new Name('/ndn/ucla.edu/bms/melnitz/kds').append(key_ts).append(usrKeyID);
+  var template = new Interest();
+  template.interestLifetime = 1000;
+  template.setMustBeFresh(false);
+
   //console.log('Fetch sym key: ' + sym_key_name.toUri());
-  face.expressInterest(sym_key_name, onKeyData, null);
+  face.expressInterest(sym_key_name, template, onKeyData, onTimeout);
 };
 
 var processData = function (data, sym_key) {
@@ -160,7 +166,10 @@ var processData = function (data, sym_key) {
   var ts = data_name.components[tpos];
   var ts_num = parseInt(DataUtils.toHex(ts.value), 16);
   //console.log(new Date(ts_num));
-  
+
+  if (dataStat.range == null)
+    dataStat.range = [ts_num - dataStat.duration, ts_num];
+
   if (ts_num < dataStat.range[0] || dataStat.sample_num >= 600) {
     // We have collected enough samples. Display in time series
     display_data();
@@ -171,8 +180,7 @@ var processData = function (data, sym_key) {
     dataStat.y1.push(json_obj.val);
 
     // Send interest for the next content object
-    var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(ts - 300000), ts, Exclude.ANY]);
-    
+    var filter = new Exclude([ts, Exclude.ANY]);
     var template = new Interest();
     template.childSelector = 1;
     template.interestLifetime = 1000;
@@ -197,21 +205,13 @@ var onTimeout = function (inst) {
 };
 
 var dataStat;
-function get_data_since (ago) {
-  var now = new Date();
-  var range = [now - ago, now]; // time range is in milliseconds
-  //console.log(range[0]);
-  console.log("Getting data since " + new Date(range[0]));
-  
+function get_data (duration) {
   var name = new Name(data_points[data_index].name);
-  dataStat = new DataStat(name, range);
+  dataStat = new DataStat(name, duration);
 
-  //var filter = new Exclude([Exclude.ANY, UnsignedIntToArrayBuffer(range[1] - 180000)]);
-  
   var template = new Interest();
   template.childSelector = 1;
   template.interestLifetime = 1000;
-  //template.exclude = filter;
   
   face.expressInterest(name, template, onData, onTimeout);
 }
@@ -230,5 +230,5 @@ $(document).ready(function () {
 	//console.log(data_index);
       }
     face = new Face({port:9696, host:hub});
-    get_data_since(300000);
+    get_data(6000000);
 });

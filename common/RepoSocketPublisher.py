@@ -4,7 +4,7 @@ class RepoSocketPublisher:
     def __init__(self, repo_port):
         self.repo_dest = ('localhost', int(repo_port))
 
-        self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect(self.repo_dest)
 
     def put(self, data):

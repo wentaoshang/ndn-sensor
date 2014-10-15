@@ -25,7 +25,7 @@ var onTimeout = function (inst) {
   console.log("Interest timeout: " + inst.name.toUri());
 };
 
-function draw_table () {
+function draw_table (date) {
   for (var i = 0; i < data_points.length; i++)
     {
       var name = data_points[i].name;
@@ -36,8 +36,10 @@ function draw_table () {
       var prefix = new Name(name);
       var unit = data_points[i].unit;
 
-      $("#list").append('<tr><td style="width:75%" id="' + name_id + '">' + bacnet_name + '</td><td style="width:12%" id="' + ts_id + '">' 
-			+ '</td><td style="width:8%" id="' + val_id + '"></td><td style="width:5%">' + unit + '</td></tr>' );
+      $("#list").append('<tr><td style="width:75%" id="' + name_id + '">'
+                        + bacnet_name + '</td><td style="width:12%" id="' + ts_id + '">' 
+			+ '</td><td style="width:8%" id="' + val_id
+                        + '"></td><td style="width:5%">' + unit + '</td></tr>' );
     }
 }
 
@@ -55,116 +57,123 @@ function get_all_data () {
   //for (var i = 0; i < data_points.length; i++)
   //  {
   var recursion = function (index) {
-        //var index = i;
-	var name = data_points[index].name;
-	var bacnet_name = data_points[index].lable;
-	var prefix = new Name(name);
-	var unit = data_points[index].unit;
+    //var index = i;
+    var name = data_points[index].name;
+    var bacnet_name = data_points[index].lable;
+    var prefix = new Name(name);
+    var unit = data_points[index].unit;
 
-	var name_id = bacnet_name.replace(/\./g, '_') + '_name';
-	$("#" + name_id)
-	  .hover(function () { $("#" + name_id).text(name); },
-		 function () { $("#" + name_id).text(bacnet_name); }
-		 );
+    var name_id = bacnet_name.replace(/\./g, '_') + '_name';
+    $("#" + name_id)
+      .hover(function () { $("#" + name_id).text(name); },
+	     function () { $("#" + name_id).text(bacnet_name); }
+	    );
 
-	$("#" + name_id).click(function () {
-	    window.open('./melnitz.html#' + index, '_self');
-	  });
+    $("#" + name_id).click(function () {
+      window.open('./melnitz.html#' + index, '_self');
+    });
 
-	var display_data = function (obj) {
-	  //console.log('Trying to show data for ' + bacnet_name);
+    var display_data = function (obj) {
+      //console.log('Trying to show data for ' + bacnet_name);
 
-	  var ts = (new Date(obj.ts)).toLocaleTimeString();
-	  var val = obj.val.toString().substr(0, 6);
+      var date = new Date(obj.ts);
+      var ts = date.toLocaleTimeString();
+      var dt = date.toLocaleDateString();
+      var val = obj.val.toString().substr(0, 6);
 
-	  var ts_id = bacnet_name.replace(/\./g, '_') + '_ts';
-	  var val_id = bacnet_name.replace(/\./g, '_') + '_val';
+      var ts_id = bacnet_name.replace(/\./g, '_') + '_ts';
+      var val_id = bacnet_name.replace(/\./g, '_') + '_val';
 
-	  $("#" + ts_id).text(ts);
-	  $("#" + val_id).text(val);
-	};
+      $("#" + ts_id).text(ts);
+      $("#" + ts_id)
+        .hover(function () { $("#" + ts_id).text(dt); },
+               function () { $("#" + ts_id).text(ts); }
+              );
 
-	var processData = function (data, sym_key) {
-	  var data_name = data.name;
-	  //console.log("Received: " + data.name.to_uri());
+      $("#" + val_id).text(val);
+    };
 
-	  var msg = DataUtils.toHex(data.content).substr(key_ts_len * 2);
-	  var iv = CryptoJS.enc.Hex.parse(msg.substr(0, iv_len * 2));
-	  var ciphertext = CryptoJS.enc.Hex.parse(msg.substr(iv_len * 2));
-	  var key = CryptoJS.enc.Hex.parse(sym_key);
-	  var aesDecryptor = CryptoJS.algo.AES.createDecryptor(key, { iv: iv });
-	  var p1 = aesDecryptor.process(ciphertext);
-	  var p2 = aesDecryptor.finalize();
-	  //console.log(p1.toString(CryptoJS.enc.Utf8));
-	  //console.log(p2.toString(CryptoJS.enc.Utf8));
+    var processData = function (data, sym_key) {
+      var data_name = data.name;
+      //console.log("Received: " + data.name.to_uri());
 
-	  var json_text = p1.toString(CryptoJS.enc.Utf8) + p2.toString(CryptoJS.enc.Utf8);
-	  var json_obj = jQuery.parseJSON(json_text);
-	  //console.log(json_text);
-	  display_data(json_obj);
+      var msg = DataUtils.toHex(data.content).substr(key_ts_len * 2);
+      var iv = CryptoJS.enc.Hex.parse(msg.substr(0, iv_len * 2));
+      var ciphertext = CryptoJS.enc.Hex.parse(msg.substr(iv_len * 2));
+      var key = CryptoJS.enc.Hex.parse(sym_key);
+      var aesDecryptor = CryptoJS.algo.AES.createDecryptor(key, { iv: iv });
+      var p1 = aesDecryptor.process(ciphertext);
+      var p2 = aesDecryptor.finalize();
+      //console.log(p1.toString(CryptoJS.enc.Utf8));
+      //console.log(p2.toString(CryptoJS.enc.Utf8));
 
-	  if (index < data_points.length - 1)
-	    {
-              console.log('Fetch data: ' + name);
-              recursion(index + 1);
-            }
-	};
+      var json_text = p1.toString(CryptoJS.enc.Utf8) + p2.toString(CryptoJS.enc.Utf8);
+      var json_obj = jQuery.parseJSON(json_text);
+      //console.log(json_text);
+      display_data(json_obj);
 
-	var fetchDecryptionKey = function (data) {
-	  var key_ts = data.content.subarray(0, key_ts_len);
-	  var key_ts_num = parseInt(DataUtils.toHex(key_ts), 16);
-	  
-	  var onKeyData = function (inst, key_data) {
-	    //CpsMelnitzPolicy.verify(ndn, key_co, function (result) {
-	    //	if (result == VerifyResult.SUCCESS) {
-	    var ciphertext = DataUtils.toHex(key_data.content);
-	    //console.log(ciphertext);
-	    var rsa = new RSAKey();
-	    rsa.readPrivateKeyFromPEMString(usrDefaultKey.privatePem);
-	    var sym_key = rsa.decrypt(ciphertext);
-	    //console.log(sym_key);
-	    //cache_key = sym_key;
-	    //cache_key_ts = key_ts_num;
-	    processData(data, sym_key);
-	    //	    } else if (result == VerifyResult.FAILURE)
-	    //		console.log('Sym key verification failed.');
-	    //	    else if (result == VerifyResult.TIMEOUT)
-	    //		console.log('Sym key verification failed due to timeout.');
-	    //});
-	  };
+      if (index < data_points.length - 1)
+      {
+        console.log('Fetch data: ' + name);
+        recursion(index + 1);
+      }
+    };
 
-	  var onKeyTimeout = function (inst) {
-	    console.log('Interest timeout when fetching decryption key:');
-	    console.log("Sym key timestamp: " + key_ts_num);
-	    console.log(DataUtils.toHex(key_ts));
-	    console.log(inst.name.to_uri());
-	  };
-	  
-	  var sym_key_name = new Name('/ndn/ucla.edu/bms/melnitz/kds').append(key_ts).append(usrKeyID);
+    var fetchDecryptionKey = function (data) {
+      var key_ts = data.content.subarray(0, key_ts_len);
+      var key_ts_num = parseInt(DataUtils.toHex(key_ts), 16);
 
-	  var template = new Interest();
-	  template.interestLifetime = 1000;
+      var onKeyData = function (inst, key_data) {
+	//CpsMelnitzPolicy.verify(ndn, key_co, function (result) {
+	//	if (result == VerifyResult.SUCCESS) {
+	var ciphertext = DataUtils.toHex(key_data.content);
+	//console.log(ciphertext);
+	var rsa = new RSAKey();
+	rsa.readPrivateKeyFromPEMString(usrDefaultKey.privatePem);
+	var sym_key = rsa.decrypt(ciphertext);
+	//console.log(sym_key);
+	//cache_key = sym_key;
+	//cache_key_ts = key_ts_num;
+	processData(data, sym_key);
+	//	    } else if (result == VerifyResult.FAILURE)
+	//		console.log('Sym key verification failed.');
+	//	    else if (result == VerifyResult.TIMEOUT)
+	//		console.log('Sym key verification failed due to timeout.');
+	//});
+      };
 
-	  //console.log('Fetch sym key: ' + sym_key_name.toUri());
-	  face.expressInterest(sym_key_name, onKeyData, null);
-	};
+      var onKeyTimeout = function (inst) {
+	console.log('Interest timeout when fetching decryption key:');
+	console.log("Sym key timestamp: " + key_ts_num);
+	console.log(DataUtils.toHex(key_ts));
+	console.log(inst.name.to_uri());
+      };
 
-	var onData = function (inst, data) {
-	  //console.log('Inerest name: ' + inst.name.toUri())
-	  //console.log('Received data: ' + data.name.toUri());
-	  //CpsMelnitzPolicy.verify(ndn, co, function (result) {
-	  //	if (result == VerifyResult.SUCCESS) {
-	  fetchDecryptionKey(data);
-	  //	} else if (result == VerifyResult.FAILURE)
-	  //	    console.log('Data verification failed.');
-	  //	else if (result == VerifyResult.TIMEOUT)
-	  //	    console.log('Data verification failed due to timeout.');
-	  //    });
-	};
+      var sym_key_name = new Name('/ndn/ucla.edu/bms/melnitz/kds').append(key_ts).append(usrKeyID);
 
-	console.log('Fetch data: ' + name);
+      var template = new Interest();
+      template.interestLifetime = 1000;
 
-	face.expressInterest(prefix, template, onData, onTimeout);
+      //console.log('Fetch sym key: ' + sym_key_name.toUri());
+      face.expressInterest(sym_key_name, onKeyData, null);
+    };
+
+    var onData = function (inst, data) {
+      //console.log('Inerest name: ' + inst.name.toUri())
+      //console.log('Received data: ' + data.name.toUri());
+      //CpsMelnitzPolicy.verify(ndn, co, function (result) {
+      //	if (result == VerifyResult.SUCCESS) {
+      fetchDecryptionKey(data);
+      //	} else if (result == VerifyResult.FAILURE)
+      //	    console.log('Data verification failed.');
+      //	else if (result == VerifyResult.TIMEOUT)
+      //	    console.log('Data verification failed due to timeout.');
+      //    });
+    };
+
+    console.log('Fetch data: ' + name);
+
+    face.expressInterest(prefix, template, onData, onTimeout);
   }; 
 
   recursion(0);
