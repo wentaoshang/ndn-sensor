@@ -137,7 +137,7 @@ var fetchDecryptionKey = function (data) {
   
   var sym_key_name = new Name('/ndn/ucla.edu/bms/melnitz/kds').append(key_ts).append(usrKeyID);
   var template = new Interest();
-  template.interestLifetime = 1000;
+  template.interestLifetime = 4000;
   template.setMustBeFresh(false);
 
   //console.log('Fetch sym key: ' + sym_key_name.toUri());
@@ -183,9 +183,9 @@ var processData = function (data, sym_key) {
     var filter = new Exclude([ts, Exclude.ANY]);
     var template = new Interest();
     template.childSelector = 1;
-    template.interestLifetime = 1000;
+    template.interestLifetime = 4000;
     template.exclude = filter;
-    template.setMustBeFresh(false);
+    template.setMustBeFresh(true);
     
     face.expressInterest(dataStat.prefix, template, onData, onTimeout);
   }
@@ -211,7 +211,8 @@ function get_data (duration) {
 
   var template = new Interest();
   template.childSelector = 1;
-  template.interestLifetime = 1000;
+  template.setMustBeFresh(true);
+  template.interestLifetime = 4000;
   
   face.expressInterest(name, template, onData, onTimeout);
 }
@@ -230,5 +231,5 @@ $(document).ready(function () {
 	//console.log(data_index);
       }
     face = new Face({port:9696, host:hub});
-    get_data(6000000);
+    get_data(3600000);
 });

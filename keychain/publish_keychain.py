@@ -1,3 +1,7 @@
+import sys
+sys.path.append("/home/wentao/PyNDN2/python/")
+sys.path.append("../common/")
+
 from pyndn import Name
 from pyndn import Data
 from pyndn import ContentType
@@ -11,9 +15,6 @@ from pyndn.security.identity import MemoryPrivateKeyStorage
 from pyndn.util import Blob
 
 from Crypto.PublicKey import RSA
-
-import sys
-sys.path.append("../common/")
 
 from utils import getKeyID
 from RepoSocketPublisher import RepoSocketPublisher

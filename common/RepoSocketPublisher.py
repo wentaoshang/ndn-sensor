@@ -2,7 +2,7 @@ import socket
 
 class RepoSocketPublisher:
     def __init__(self, repo_port):
-        self.repo_dest = ('localhost', int(repo_port))
+        self.repo_dest = ('127.0.0.1', int(repo_port))
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect(self.repo_dest)

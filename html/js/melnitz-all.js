@@ -52,7 +52,7 @@ function get_all_data () {
   var template = new Interest();
   template.childSelector = 1;
   template.interestLifetime = 1000;
-  //template.setMustBeFresh(false);
+  template.setMustBeFresh(true);
   
   //for (var i = 0; i < data_points.length; i++)
   //  {
