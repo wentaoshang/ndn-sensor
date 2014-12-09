@@ -113,9 +113,14 @@ function executeQuery () {
     return;
   }
     
-  $("#result").append("Start query: " + query).append("<br/>");
+  $("#result").append("Execute query: <strong>" + query + "</strong>").append("<br/>");
   var stmt = db.prepare(query);
-  var tb = "Result:<br/><table><tr><td>Building</td><td>Room</td><td>Panel</td><td>Type</td><td>Timestamp</td><td>Value</td></tr>";
+  var tb = "Result:<br/><table><tr>";
+  for (var i = 0; i < schema.length; i++)
+  {
+    tb += "<td>" + schema[i] + "</td>";
+  }
+  tb += "</tr>";
   while (stmt.step()) {
     var res = stmt.get();
     tb += "<tr><td>" + res[0] + "</td><td>" + res[1] + "</td><td>" + res[2] + "</td><td>" + res[3]
@@ -130,10 +135,12 @@ var face;
 var hub = "borges.metwi.ucla.edu";
 var data_index = 0;
 
+var schema = ["BUILDING", "ROOM", "PANEL", "TYPE", "TIMESTAMP", "VALUE"];
+
 $(document).ready(function () {
   face = new Face({port:9696, host:hub});
   db = new SQL.Database();
-  db.run("CREATE TABLE bms (building, room, panel, type, timestamp, value);");
+  db.run("CREATE TABLE bms (" + schema.toString() + ");");
   $("#loader").fadeOut(50);
   $("#summary").fadeIn(100);
   loadData(1200000);
