@@ -250,7 +250,7 @@ p
 {
     list-style-type: none;
     display: inline;
-    margin: 0px 30px;
+    margin: 0px 21px;
 }
 	 
 #navbar li a, #navbar_blue li a, #navbar_red li a, #navbar_yellow li a
@@ -290,41 +290,6 @@ a
     margin: 50px 20% 0 20%;
     min-width: 500px;
     /*max-width: 1000px;*/
-}
-
-#box-table-a
-{
-    margin-top: 50px;
-    margin-bottom: 50px;
-    margin-left: 1%;
-    /*float: left;*/
-    font-family: 'Istok Web', sans-serif;
-    font-size: 12px;
-    width: 100%;
-    text-align: center;
-    border-collapse: collapse;
-}
-
-#box-table-a th
-{
-    -moz-border-radius: 5px;
-    border-radius: 5px;
-    font-size: 14px;
-    font-weight: normal;
-    padding: 8px;
-    background: #E0FFFF;
-    border-top: 1px solid #3090C7;
-    border-bottom: 1px solid #fff;
-    color: #727272;
-    text-align: center;
-}
-
-#box-table-a td
-{
-    padding: 8px;
-    border-bottom: 1px solid #fff;
-    color: #000;
-    border-top: 1px solid transparent;
 }
 
 .odd
