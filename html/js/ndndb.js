@@ -57,7 +57,6 @@ var processData = function (data, sym_key) {
   if (ts_num < dataStat.range[0] || dataStat.sample_num >= 1000) {
     $("#result").append("Imported " + dataStat.sample_num + " data points.")
       .append("<br/>");
-    $("#result").append("Finish loading data.").append("<br/>");
     $("#query").val("SELECT * FROM bms;");
     $("#run").show();
   } else {
@@ -107,25 +106,37 @@ function executeQuery () {
     $("#result").html("Load data first!").append("<br/>");
     return;
   }
-  var query = $("#query").val();
+  var query = $("#query").val().toUpperCase();
   if (query == "" || query == null) {
     $("#result").append("Error: empty query!").append("<br/>");
     return;
   }
-    
+
   $("#result").append("Execute query: <strong>" + query + "</strong>").append("<br/>");
-  var stmt = db.prepare(query);
+  var stmt;
+  try {
+    stmt = db.prepare(query);
+  } catch (e) {
+    $("#result").append("<font color='red'>Fatal: " + e.message + "</font>").append("<br/>");
+    return;
+  }
+  stmt.step();
+  var colName = stmt.getColumnNames();
   var tb = "Result:<br/><table><tr>";
-  for (var i = 0; i < schema.length; i++)
+  for (var i = 0; i < colName.length; i++)
   {
-    tb += "<td>" + schema[i] + "</td>";
+    tb += "<td>" + colName[i] + "</td>";
   }
   tb += "</tr>";
-  while (stmt.step()) {
+  do {
     var res = stmt.get();
-    tb += "<tr><td>" + res[0] + "</td><td>" + res[1] + "</td><td>" + res[2] + "</td><td>" + res[3]
-      + "</td><td>" + res[4] + "</td><td>" + res[5] + "</td></tr>";
-  }
+    tb += "<tr>";
+    for (var i = 0; i < res.length; i++)
+    {
+      tb += "<td>" + res[i] + "</td>"
+    }
+    tb += "</tr>";
+  } while (stmt.step())
   tb += "</table><br/>";
   $("#result").append(tb);
 }
