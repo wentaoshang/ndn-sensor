@@ -1,8 +1,6 @@
-var DataStat = function DataStat (prfx, duration) {
+var DataStat = function DataStat (prfx) {
   this.prefix = prfx; // prefix for the data namespace
-  this.duration = duration; // time span of the data to be fetched
-  this.range = null; // array of two integers [start, end], the time range within which we want to fetch the data
-  this.sample_num = 0;
+  this.sample_num = 0; // total number of collected data
 };
 
 var onData = function (inst, data) {
@@ -47,18 +45,11 @@ var processData = function (data, sym_key) {
 
   dataStat.sample_num++;
 
-  var tpos = data_name.components.length - 1;
-  var ts = data_name.components[tpos];
-  var ts_num = parseInt(DataUtils.toHex(ts.value), 16);
-
-  if (dataStat.range == null)
-    dataStat.range = [ts_num - dataStat.duration, ts_num];
-
-  if (ts_num < dataStat.range[0] || dataStat.sample_num >= 1000) {
+  if (dataStat.sample_num >= max_data_num) {
     $("#result").append("Imported " + dataStat.sample_num + " data points.")
       .append("<br/>");
     $("#query").val("SELECT * FROM bms;");
-    $("#run").show();
+    $("#run").attr("disabled", false);
   } else {
     // Insert data into db
     var stmt = db.prepare("INSERT INTO bms VALUES (?, ?, ?, ?, ?, ?);");
@@ -67,31 +58,33 @@ var processData = function (data, sym_key) {
     stmt.free();
 
     // Send interest for the next content object
+    var tpos = data_name.components.length - 1;
+    var ts = data_name.components[tpos];
     var filter = new Exclude([ts, Exclude.ANY]);
     var template = new Interest();
     template.childSelector = 1;
     template.interestLifetime = 4000;
     template.exclude = filter;
     template.setMustBeFresh(true);
-    
+
     face.expressInterest(dataStat.prefix, template, onData, onTimeout);
   }
 };
 
 var onTimeout = function (inst) {
   console.log("Interest timeout: " + inst.name.toUri());
-  $("#summary").hide();
+  $("#ndndb").hide();
   $('#error').append("<p>Currently I'm connected to " + hub + ".</p>");
   $("#error").fadeIn(100);
 };
 
 var dataStat;
 
-function loadData(duration) {
-  $("#result").append("Start loading data. Please wait...").append("<br/>");
+function loadData() {
+  $("#result").append("Loading data...").append("<br/>");
 
   var name = new Name(data_points[data_index].name);
-  dataStat = new DataStat(name, duration);
+  dataStat = new DataStat(name);
 
   var template = new Interest();
   template.childSelector = 1;
@@ -102,10 +95,6 @@ function loadData(duration) {
 }
 
 function executeQuery () {
-  if (dataStat == null) {
-    $("#result").html("Load data first!").append("<br/>");
-    return;
-  }
   var query = $("#query").val().toUpperCase();
   if (query == "" || query == null) {
     $("#result").append("Error: empty query!").append("<br/>");
@@ -145,7 +134,7 @@ var db;
 var face;
 var hub = "borges.metwi.ucla.edu";
 var data_index = 0;
-
+var max_data_num = 200;
 var schema = ["BUILDING", "ROOM", "PANEL", "TYPE", "TIMESTAMP", "VALUE"];
 
 $(document).ready(function () {
@@ -153,6 +142,6 @@ $(document).ready(function () {
   db = new SQL.Database();
   db.run("CREATE TABLE bms (" + schema.toString() + ");");
   $("#loader").fadeOut(50);
-  $("#summary").fadeIn(100);
-  loadData(1200000);
+  $("#ndndb").fadeIn(100);
+  loadData();
 });

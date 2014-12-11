@@ -36,15 +36,19 @@
       </div>
       
 
-      <div id="summary">
+      <div id="ndndb">
 	<div class="titles"><p>NDNDB Demo: </p></div>
         <div>
+          <p>
+            Table name: BMS<br/>
+            Schema: (Bulding, Room, Panel, Type, Timestamp, Value)<br/>
+          </p>
           <input type="text" id="query" size="80">
-          <button id="run" onclick="executeQuery()" style="display:none">Execute Query</button>
+          <button id="run" onclick="executeQuery()" disabled="disabled">Execute Query</button>
         </div>
         <div>
           <p>Console log: </p>
-          <p id="result"></p>
+          <p id="result" style="border:1px solid black; border-radius:5px; padding:5px;"></p>
         </div>
       </div>
 
